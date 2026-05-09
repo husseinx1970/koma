@@ -1,616 +1,830 @@
 import { useState, useEffect, useCallback } from "react";
+
+/* ══════════════════════════════════════════
+   GLOBAL CSS
+══════════════════════════════════════════ */
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
-*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-html { -webkit-font-smoothing:antialiased; }
-body { background:#0E0E0E; }
-::selection { background:#FF4500; color:#000; }
-input::placeholder { color:#272727; font-family:'Barlow',sans-serif; }
-textarea::placeholder { color:#272727; font-family:'Barlow',sans-serif; }
-input:focus, textarea:focus { outline:none; }
-input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(0.35); cursor:pointer; }
-::-webkit-scrollbar { width:4px; }
-::-webkit-scrollbar-track { background:#0E0E0E; }
-::-webkit-scrollbar-thumb { background:#2A2A2A; }
-.checker { background-color:#161616; background-image:repeating-conic-gradient(rgba(255,255,255,0.022) 0% 25%,transparent 0% 50%); background-size:16px 16px; }
-.grid-bg { background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px); background-size:28px 28px; }
-.hazard { background:repeating-linear-gradient(-45deg,#FF4500 0px,#FF4500 8px,#111 8px,#111 18px); }
-.hazard-amber { background:repeating-linear-gradient(-45deg,#D4940F 0px,#D4940F 8px,#111 8px,#111 18px); }
-@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-@keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
-@keyframes scaleIn { from{opacity:0;transform:scale(0.92) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
-@keyframes spin { to{transform:rotate(360deg)} }
-@keyframes blink { 0%,100%{opacity:1}50%{opacity:0.2} }
-@keyframes stampIn { 0%{opacity:0;transform:scale(1.6) rotate(-12deg)} 70%{transform:scale(0.94) rotate(2deg)} 100%{opacity:1;transform:scale(1) rotate(0)} }
-.enter { animation:fadeUp 0.3s cubic-bezier(0.22,1,0.36,1) both; }
-.back { animation:fadeDown 0.3s cubic-bezier(0.22,1,0.36,1) both; }
-.stamp { animation:stampIn 0.6s 0.2s cubic-bezier(0.22,1,0.36,1) both; }
-.field:focus { border-color:#FF4500!important; box-shadow:0 0 0 2px rgba(255,69,0,0.12)!important; background:#141414!important; }
-.reg-plate:focus { border-color:#FF4500!important; box-shadow:0 0 0 2px rgba(255,69,0,0.12)!important; }
-.ghost:hover { border-color:rgba(255,255,255,0.22)!important; color:#fff!important; }
-.primary:hover{ filter:brightness(1.1); box-shadow:0 0 40px rgba(255,69,0,0.4)!important; }
-.svc:hover { transform:translateY(-3px)!important; }
-.slot:hover:not(:disabled) { border-color:#FF4500!important; color:#FF4500!important; background:rgba(255,69,0,0.07)!important; }
-.tag:hover { border-color:rgba(255,69,0,0.45)!important; color:#FF4500!important; }
-.nav-a:hover { color:#FF4500!important; }
-.upload:hover { border-color:#FF4500!important; background:rgba(255,69,0,0.04)!important; }
-.statbox:hover{ background:rgba(255,255,255,0.03)!important; cursor:pointer; }
-.trow:hover { background:rgba(255,255,255,0.03)!important; }
-.stab:hover { background:rgba(255,255,255,0.04)!important; }
-.reg-plate { font-family:'Share Tech Mono',monospace; font-size:20px; letter-spacing:8px; text-transform:uppercase; border:2px solid rgba(255,255,255,0.12); border-radius:3px; background:#0E0E0E; color:#E8E8E8; padding:13px 16px; width:100%; text-align:center; transition:all 0.2s; display:block; }
-.reg-plate::placeholder { letter-spacing:4px; color:#272727; }
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+}
+body {
+  background: #0E0E12;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+img, video { max-width: 100%; display: block; }
+input, textarea, button, select { max-width: 100%; }
+/* Prevent iOS zoom on input focus */
+input, textarea, select { font-size: 16px !important; }
+
+::selection { background: rgba(196,32,40,.3); color:#fff; }
+input::placeholder, textarea::placeholder { color: #2C2C38; }
+input:focus, textarea:focus { outline: none; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(.4); cursor:pointer; }
+button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer; }
+a { -webkit-tap-highlight-color: transparent; }
+
+/* ── Animations ── */
+@keyframes slideUp   { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideDown { from{opacity:0;transform:translateY(-22px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes popIn     { from{opacity:0;transform:scale(.94) translateY(14px)} to{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes spin      { to{transform:rotate(360deg)} }
+@keyframes drawCheck { from{stroke-dashoffset:60} to{stroke-dashoffset:0} }
+@keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.step-in   { animation: slideUp   .3s cubic-bezier(.22,1,.36,1) both; }
+.step-out  { animation: slideDown .3s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── Focus styles ── */
+.inp:focus {
+  border-color: rgba(196,32,40,.6) !important;
+  box-shadow: 0 0 0 3px rgba(196,32,40,.1) !important;
+}
+
+/* ── Hover (desktop only) ── */
+@media (hover:hover) {
+  .btn-red:hover    { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 14px 44px rgba(196,32,40,.35) !important; }
+  .btn-ghost:hover  { border-color:rgba(255,255,255,.22) !important; color:#fff !important; }
+  .svc-card:hover   { transform:translateY(-3px) !important; border-color:rgba(196,32,40,.5) !important; }
+  .slot-btn:not([disabled]):hover { border-color:rgba(196,32,40,.5) !important; color:#E82030 !important; background:rgba(196,32,40,.07) !important; }
+  .tag-pill:hover   { border-color:rgba(196,32,40,.45) !important; color:#E82030 !important; background:rgba(196,32,40,.07) !important; }
+  .nav-link:hover   { color:#E82030 !important; }
+  .admin-row:hover  { background:rgba(255,255,255,.025) !important; }
+}
+
+/* ── Responsive breakpoints ── */
+@media (max-width:640px) {
+  .hero-title    { font-size: clamp(48px,13vw,68px) !important; line-height:.88 !important; letter-spacing:-1px !important; }
+  .svc-grid      { grid-template-columns: 1fr !important; }
+  .slot-grid     { grid-template-columns: repeat(2,1fr) !important; }
+  .card-inner    { padding: 22px 18px 22px 22px !important; }
+  .header-inner  { padding: 0 14px !important; }
+  .hero-section  { padding: 36px 16px 0 !important; }
+  .main-wrap     { padding: 36px 14px 80px !important; }
+  .step-labels   { display: none !important; }
+  .modal-body    { padding: 20px 18px !important; }
+  .stat-grid     { grid-template-columns: 1fr 1fr !important; }
+  .hdr-wordmark  { display: none !important; }
+  .footer-inner  { flex-direction: column !important; gap: 10px !important; }
+}
+@media (min-width:641px) and (max-width:900px) {
+  .hero-title { font-size: clamp(68px,10vw,84px) !important; }
+  .slot-grid  { grid-template-columns: repeat(3,1fr) !important; }
+}
+@media (min-width:901px) {
+  .hero-title { font-size: 90px !important; }
+  .slot-grid  { grid-template-columns: repeat(3,1fr) !important; }
+}
 `;
 
+/* ══════════════════════════════════════════
+   COLOR TOKENS  —  Real Workshop Palette
+   Steel dark + Warning Red + Clean white
+══════════════════════════════════════════ */
 const C = {
-bg:"#0E0E0E", bg1:"#111", bg2:"#141414", panel:"#1A1A1A", panelHi:"#1E1E1E",
-border:"rgba(255,255,255,0.07)", borderLo:"rgba(255,255,255,0.04)",
-accent:"#FF4500", accentDim:"rgba(255,69,0,0.1)", accentGlow:"rgba(255,69,0,0.25)",
-amber:"#D4940F", amberDim:"rgba(212,148,15,0.1)",
-green:"#0A9E4E", greenDim:"rgba(10,158,78,0.1)",
-red:"#C63232", redDim:"rgba(198,50,50,0.1)",
-text:"#E4E4E4", sub:"#7A828F", muted:"#3E424A", dim:"#252525",
+  // Backgrounds — warm dark steel
+  bg:      "#0E0E12",
+  surface: "#14141A",
+  card:    "#1A1A22",
+  cardAlt: "#20202A",
+  stripe:  "#242430",
+
+  // Borders
+  bd:      "rgba(255,255,255,.08)",
+  bdFaint: "rgba(255,255,255,.04)",
+
+  // Accent — Workshop Red (Snap-on / Bosch / Ferrari Service)
+  red:     "#C42028",
+  redL:    "#E82030",
+  redD:    "#8C1418",
+  redDim:  "rgba(196,32,40,.09)",
+  redGlow: "rgba(196,32,40,.22)",
+
+  // Text
+  white:   "#F4F2EE",
+  g1:      "#9A9AA8",
+  g2:      "#60606E",
+  g3:      "#30303C",
+
+  // Status
+  ok:      "#3A9460",
+  warn:    "#D4922A",
+  blue:    "#2E72C4",
+  err:     "#D44040",
 };
-const F = { T:"'Bebas Neue','Impact',sans-serif", M:"'Share Tech Mono',monospace", B:"'Barlow',sans-serif", BC:"'Barlow Condensed',sans-serif" };
-const WS = { name:"HUSSEIN'S BILSERVICE", sub:"Auktoriserad Verkstad", phone:"0790-574 975", phonePlain:"0790574975", email:"husseinmormor@gmail.com", hours:"Mån–Fre 08:00–17:00", since:"2010" };
-const SLOTS = ["08:00","09:30","11:00","12:30","14:00","15:30"];
-const MAX = 5;
-const ADMIN_PW = "admin2024";
-const TAGS = ["Konstigt ljud","Motorproblem","Vibration","Startar ej","Motorlampa","Oljebyte","Bromsservice","Däckbyte","Kylarsystem","Elektrisk fel"];
-const STEPS = [{n:1,lbl:"KUNDINFORMATION"},{n:2,lbl:"SERVICETYP"},{n:3,lbl:"FELANMÄLAN"},{n:4,lbl:"DOKUMENTATION"},{n:5,lbl:"BEKRÄFTELSE"}];
-const SVCS_LIST = ["Motor & diagnos","Bromsservice","Oljebyte","Däckbyte","El-system","Kylarsystem","Transmission","Avgassystem"];
-function getAll() { try{return JSON.parse(localStorage.getItem("hbs7")||"[]")}catch{return[]} }
-function saveAll(a) { localStorage.setItem("hbs7",JSON.stringify(a)) }
-function storaOn(d) { return getAll().filter(b=>b.date===d&&b.jobType==="stora").length }
-function slotsOn(d) { return getAll().filter(b=>b.date===d).map(b=>b.time) }
-function isWe(d) { if(!d)return false; const w=new Date(d+"T12:00:00").getDay(); return w===0||w===6 }
-function isPast(d) { if(!d)return false; const t=new Date(); t.setHours(0,0,0,0); return new Date(d+"T00:00:00")<t }
-function tod() { return new Date().toISOString().split("T")[0] }
-function fmtL(d) { if(!d)return"–"; return new Date(d+"T12:00:00").toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"}) }
-function fmtS(d) { if(!d)return"–"; return new Date(d+"T12:00:00").toLocaleDateString("sv-SE",{day:"numeric",month:"short"}) }
-function curTime() { return new Date().toLocaleTimeString("sv-SE",{hour:"2-digit",minute:"2-digit"}) }
+
+const F = {
+  display: "'Barlow Condensed', sans-serif",
+  body:    "'Inter', sans-serif",
+  mono:    "'JetBrains Mono', monospace",
+};
+
+/* ══════════════════════════════════════════
+   WORKSHOP CONFIG
+══════════════════════════════════════════ */
+const WS = {
+  name:    "Kom In Bilservice",
+  short:   "KI",
+  tagline: "Auktoriserad Bilverkstad",
+  city:    "Stockholm",
+  phone:   "0790-574 975",
+  tel:     "0790574975",
+  email:   "husseinmormor@gmail.com",
+  hours:   "Mån – Fre  ·  08:00 – 17:00",
+  est:     "Est. 2010",
+};
+
+const SLOTS  = ["08:00","09:30","11:00","12:30","14:00","15:30"];
+const MAX    = 5;
+const ADM_PW = "admin2024";
+const TAGS   = ["Konstigt ljud","Motorproblem","Vibration","Startar ej","Motorlampa","Oljebyte","Bromsservice","Däckbyte"];
+const STEPS  = [{n:1,l:"Kontakt"},{n:2,l:"Tjänst"},{n:3,l:"Ärende"},{n:4,l:"Bekräfta"}];
+
+/* ══════════════════════════════════════════
+   STORAGE & UTILS
+══════════════════════════════════════════ */
+const KEY      = "ki_v2";
+const getAll   = ()  => { try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]} };
+const saveAll  = a   => localStorage.setItem(KEY, JSON.stringify(a));
+const storaOn  = d   => getAll().filter(b=>b.date===d&&b.jobType==="stora").length;
+const slotsOn  = d   => getAll().filter(b=>b.date===d).map(b=>b.time);
+const isWknd   = d   => { if(!d)return false; const w=new Date(d+"T12:00:00").getDay(); return w===0||w===6; };
+const isPast   = d   => { if(!d)return false; const t=new Date(); t.setHours(0,0,0,0); return new Date(d+"T00:00:00")<t; };
+const todayStr = ()  => new Date().toISOString().split("T")[0];
+const fmtLong  = d   => !d?"–":new Date(d+"T12:00:00").toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+const fmtShort = d   => !d?"–":new Date(d+"T12:00:00").toLocaleDateString("sv-SE",{day:"numeric",month:"short",year:"numeric"});
+const cap      = s   => s?s[0].toUpperCase()+s.slice(1):s;
+const orderNo  = id  => "KI-"+String(id).slice(-5).toUpperCase();
+
 function sendMail(b) {
-const s=encodeURIComponent(`NY BOKNING — ${b.name} — ${fmtS(b.date)}`);
-const t=encodeURIComponent(`ARBETSORDER\n${"─".repeat(28)}\nKUND: ${b.name}\nTEL: ${b.phone}\nEPOST: ${b.email}\nREG.NR: ${b.regno||"–"}\n${"─".repeat(28)}\nTJÄNST: ${b.jobType==="enkla"?"Snabbservice":"Större jobb"}\nDATUM: ${b.jobType==="enkla"?"Drop-in":fmtL(b.date)}\nTID: ${b.time}\n${"─".repeat(28)}\nFEL:\n${b.description||"–"}\n\nID: ${b.id}`);
-window.open(`mailto:${WS.email}?subject=${s}&body=${t}`,"_blank");
-}
-/* ── Shared primitives ── */
-const Inp = {
-base:{ width:"100%",background:C.bg2,border:`1px solid ${C.border}`,borderRadius:0,padding:"11px 14px",color:C.text,fontSize:14,fontFamily:F.B,letterSpacing:"0.1px",transition:"all 0.2s",display:"block" },
-};
-const Btn = {
-primary:{ background:`linear-gradient(180deg,#FF5722 0%,#CC3A10 100%)`,border:"none",padding:"12px 24px",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:F.T,letterSpacing:"2px",transition:"all 0.2s",borderRadius:0 },
-ghost:{ background:"transparent",border:`1px solid ${C.border}`,padding:"9px 16px",color:C.sub,fontSize:11,cursor:"pointer",fontFamily:F.M,letterSpacing:"1px",transition:"all 0.18s",borderRadius:0 },
-};
-const Lbl = { fontFamily:F.M,fontSize:9,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,margin:0 };
+  const sub  = encodeURIComponent(`Ny bokning – ${b.name} – ${fmtShort(b.date)}`);
+  const body = encodeURIComponent(
+`ARBETSORDER  ${orderNo(b.id)}
+${WS.name.toUpperCase()}  ·  ${WS.city}
+${"═".repeat(36)}
 
-function Glb() { return <style dangerouslySetInnerHTML={{__html:CSS}}/>; }
-function Fnt() { return <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet"/>; }
-function Err({msg}) { return <p style={{fontFamily:F.M,color:C.red,fontSize:9,marginTop:6,letterSpacing:"0.5px"}}>ERR: {msg.toUpperCase()}</p>; }
-function WField({ label, ph, type="text", value, err, onChange, hint, min }) {
-return (
-<div>
-<label style={{...Lbl,display:"block",marginBottom:7}}>{label}</label>
-<input type={type} placeholder={ph} value={value} min={min} className="field" onChange={e=>onChange(e.target.value)} style={{...Inp.base,...(err?{borderColor:C.red+"70"}:{})}}/>
-{hint&&!err&&<p style={{fontFamily:F.M,fontSize:9,color:C.muted,marginTop:5,letterSpacing:"0.5px"}}>{hint}</p>}
-{err&&<Err msg={err}/>}
-</div>
-);
-}
-function WCard({ title, sub, stepNum, children }) {
-return (
-<div style={{border:`1px solid ${C.border}`,background:C.panel,boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
-<div style={{borderBottom:`1px solid ${C.border}`,padding:"14px 20px",display:"flex",gap:12,alignItems:"flex-start",background:C.panelHi}}>
-<div style={{width:3,background:C.accent,alignSelf:"stretch",flexShrink:0}}/>
-<div>
-<p style={{fontFamily:F.M,fontSize:9,color:C.accent,letterSpacing:"2px",marginBottom:5}}>STEG {String(stepNum).padStart(2,"0")} / 05</p>
-<h2 style={{fontFamily:F.T,fontSize:22,color:C.text,letterSpacing:"1px",lineHeight:1,marginBottom:3}}>{title}</h2>
-<p style={{fontFamily:F.M,fontSize:9,color:C.muted,letterSpacing:"0.5px"}}>{sub}</p>
-</div>
-</div>
-<div style={{padding:"22px 20px"}}>{children}</div>
-</div>
-);
-}
-function NavRow({ step, onNext, onBack, nextLabel="NÄSTA", isLast=false }) {
-const ArrowR = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
-const ArrowL = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
-return (
-<div style={{display:"flex",gap:8,marginTop:20,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
-{onBack&&<button onClick={onBack} className="ghost" style={{...Btn.ghost,padding:"11px 14px",flexShrink:0,display:"flex",alignItems:"center",gap:6}}><ArrowL/> TILLBAKA</button>}
-<button onClick={onNext} className="primary" style={{...Btn.primary,flex:1,padding:"12px",fontSize:15,letterSpacing:"2.5px",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-{nextLabel} <ArrowR/>
-</button>
-</div>
-);
-}
-/* ══ ADMIN ══ */
-function Admin({ onBack }) {
-const [auth,setAuth]=useState(false); const [pw,setPw]=useState(""); const [err,setErr]=useState(false); const [ld,setLd]=useState(false);
+KUND:       ${b.name}
+TELEFON:    ${b.phone}
+E-POST:     ${b.email}
 
-const [data,setData]=useState([]); const [filt,setFilt]=useState("all"); const [q,setQ]=useState("");
-useEffect(()=>{ if(auth) setData(getAll()) },[auth]);
-function upd(id,s){ const u=getAll().map(b=>b.id===id?{...b,status:s}:b); saveAll(u); setData(u) }
-function del(id){ if(!confirm("Ta bort?"))return; const u=getAll().filter(b=>b.id!==id); saveAll(u); setData(u) }
-async function login(){ setLd(true); await new Promise(r=>setTimeout(r,500)); setLd(false); if(pw===ADMIN_PW)setAuth(true); else{setErr(true);setPw("")} }
-const sc={Ny:C.amber,Pågående:C.accent,Klar:C.green};
-const rows=data.filter(b=>filt==="all"||b.status===filt).filter(b=>!q||b.name.toLowerCase().includes(q.toLowerCase())||b.phone.includes(q)).sort((a,b)=>a.date>b.date?1:-1);
-const cnt={all:data.length,Ny:data.filter(b=>b.status==="Ny").length,Pågående:data.filter(b=>b.status==="Pågående").length,Klar:data.filter(b=>b.status==="Klar").length};
-if(!auth) return (
-<div style={{minHeight:"100vh",background:C.bg,fontFamily:F.B,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-<Glb/><Fnt/>
-<div style={{width:"100%",maxWidth:380}}>
-<button onClick={onBack} className="ghost" style={{...Btn.ghost,marginBottom:36}}>← TILLBAKA</button>
-<div className="hazard" style={{height:8}}/>
-<div style={{background:C.panel,border:`1px solid ${C.border}`,borderTop:"none",borderBottom:"none",padding:"28px 28px 32px"}}>
-<p style={{fontFamily:F.M,fontSize:9,color:C.accent,letterSpacing:"2px",marginBottom:10}}>// SKYDDAD ÅTKOMST</p>
-<h1 style={{fontFamily:F.T,fontSize:60,color:C.text,lineHeight:0.9,marginBottom:4,letterSpacing:"1px"}}>ADMIN<br/><span style={{color:C.accent}}>PANEL</span></h1>
-<p style={{fontFamily:F.M,fontSize:9,color:C.muted,marginBottom:28,marginTop:8,letterSpacing:"1px"}}>{WS.name}</p>
-<label style={{...Lbl,display:"block",marginBottom:7}}>LÖSENORD</label>
-<input type="password" value={pw} autoFocus placeholder="••••••••••" className="field"
-onChange={e=>{setPw(e.target.value);setErr(false)}} onKeyDown={e=>e.key==="Enter"&&login()}
-style={{...Inp.base,...(err?{borderColor:C.red}:{})}}/>
-{err&&<p style={{fontFamily:F.M,color:C.red,fontSize:9,marginTop:7,letterSpacing:"0.5px"}}>ERR: FEL LÖSENORD</p>}
-<button onClick={login} disabled={ld} className="primary" style={{...Btn.primary,width:"100%",marginTop:14,padding:"15px",fontSize:18,letterSpacing:"2px"}}>
-{ld?<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span style={{width:14,height:14,border:"2px solid rgba(0,0,0,0.3)",borderTopColor:"#000",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>VERIFIERAR</span>:"LOGGA IN"}
-</button>
-</div>
-<div className="hazard" style={{height:8}}/>
-</div>
-</div>
-);
-return (
-<div style={{minHeight:"100vh",background:C.bg,fontFamily:F.B,color:C.text}}>
-<Glb/><Fnt/>
-<div style={{borderBottom:`1px solid ${C.border}`,height:52,display:"flex",alignItems:"center",padding:"0 24px",gap:14,position:"sticky",top:0,background:"rgba(14,14,14,0.97)",backdropFilter:"blur(8px)",zIndex:50}}>
-<div style={{width:28,height:28,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-</div>
-<button onClick={onBack} className="ghost" style={{...Btn.ghost,fontSize:10,padding:"5px 10px"}}>← BOKNING</button>
-<div style={{width:1,height:14,background:C.border}}/>
-<span style={{fontFamily:F.T,fontSize:16,letterSpacing:"2px"}}>{WS.name} — ADMINPANEL</span>
-<div style={{marginLeft:"auto"}}>
-<input placeholder="Sök kund..." value={q} onChange={e=>setQ(e.target.value)} className="field" style={{...Inp.base,width:200,height:32,padding:"0 12px",fontSize:12}}/>
-</div>
-</div>
+TJÄNST:     ${b.jobType==="enkla"?"Snabbservice (drop-in)":"Större jobb – tidsbokning"}
+DATUM:      ${b.jobType==="enkla"?"Drop-in (inget datum)":fmtLong(b.date)}
+TID:        ${b.time}
 
-<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderBottom:`1px solid ${C.border}`}}>
-{[{l:"TOTALT",n:cnt.all,c:C.sub,k:"all"},{l:"NYA",n:cnt.Ny,c:C.amber,k:"Ny"},{l:"PÅGÅENDE",n:cnt.Pågående,c:C.accent,k:"Pågående"},{l:"KLARA",n:cnt.Klar,c:C.green,k:"Klar"}].map((x,i)=>(
-<div key={x.k} className="statbox" onClick={()=>setFilt(x.k)} style={{padding:"18px 24px",borderRight:i<3?`1px solid ${C.border}`:"none",background:filt===x.k?`${x.c}09`:"transparent",transition:"all 0.15s",borderBottom:filt===x.k?`2px solid ${x.c}`:"2px solid transparent"}}>
-<p style={{fontFamily:F.M,fontSize:8,color:C.muted,marginBottom:8,letterSpacing:"1.5px"}}>{x.l}</p>
-<p style={{fontFamily:F.T,fontSize:44,color:x.c,lineHeight:1,letterSpacing:"1px"}}>{x.n}</p>
-</div>
-))}
-</div>
-<div style={{padding:"12px 24px",display:"flex",gap:6,borderBottom:`1px solid ${C.border}`,background:C.bg1}}>
-{["all","Ny","Pågående","Klar"].map(f=>(
-<button key={f} onClick={()=>setFilt(f)} className="ghost" style={{...Btn.ghost,fontSize:10,padding:"5px 12px",...(filt===f?{borderColor:`${C.accent}80`,color:C.accent,background:C.accentDim}:{})}}>
-{f==="all"?"ALLA":f.toUpperCase()}
-</button>
-))}
-</div>
-<div style={{padding:"0 24px 60px",overflowX:"auto"}}>
-{rows.length===0
-?<div style={{textAlign:"center",padding:"80px 0"}}><p style={{fontFamily:F.T,fontSize:36,color:C.muted,letterSpacing:"2px"}}>INGA BOKNINGAR</p></div>
-:<table style={{width:"100%",borderCollapse:"collapse",minWidth:820,marginTop:14}}>
-<thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{["KUND","FORDON","DATUM / TID","TJÄNST","KONTAKT","STATUS",""].map(h=><th key={h} style={{fontFamily:F.M,fontSize:8,fontWeight:400,letterSpacing:"1.5px",padding:"9px 14px",textAlign:"left",color:C.muted}}>{h}</th>)}</tr></thead>
-<tbody>
-{rows.map(b=>(
-<tr key={b.id} className="trow" style={{borderBottom:`1px solid rgba(255,255,255,0.03)`,transition:"background 0.12s"}}>
-<td style={{padding:"13px 14px"}}><p style={{fontFamily:F.BC,fontWeight:700,fontSize:14,color:C.text}}>{b.name}</p><p style={{fontFamily:F.M,fontSize:8,color:C.muted,marginTop:2}}>#{b.id.slice(-6)}</p></td>
-<td style={{padding:"13px 14px"}}>{b.regno?<div style={{fontFamily:F.M,fontSize:13,color:C.text,background:"#0E0E0E",border:"1px solid rgba(255,255,255,0.1)",padding:"4px 8px",letterSpacing:"5px",display:"inline-block"}}>{b.regno}</div>:<span style={{color:C.muted,fontSize:10}}>—</span>}</td>
-<td style={{padding:"13px 14px"}}><p style={{fontSize:12,color:C.sub}}>{b.date||"Drop-in"}</p><p style={{fontFamily:F.M,fontSize:13,color:C.accent,marginTop:3}}>{b.time}</p></td>
-<td style={{padding:"13px 14px"}}><span style={{fontFamily:F.M,fontSize:9,letterSpacing:"0.5px",padding:"4px 8px",color:b.jobType==="enkla"?C.amber:C.accent,background:b.jobType==="enkla"?C.amberDim:C.accentDim}}>{b.jobType==="enkla"?"SNABBSERVICE":"STÖRRE JOBB"}</span></td>
-<td style={{padding:"13px 14px"}}><p style={{fontSize:12,color:C.sub}}>{b.phone}</p><p style={{fontSize:10,color:C.muted,marginTop:2}}>{b.email}</p></td>
-<td style={{padding:"13px 14px"}}><div style={{display:"flex",gap:4}}>{["Ny","Pågående","Klar"].map(s=><button key={s} onClick={()=>upd(b.id,s)} style={{padding:"4px 8px",border:"none",cursor:"pointer",fontFamily:F.M,fontSize:9,letterSpacing:"0.5px",transition:"all 0.12s",background:b.status===s?`${sc[s]}22`:"transparent",color:b.status===s?sc[s]:C.muted,outline:b.status===s?`1px solid ${sc[s]}55`:"none"}}>{s.toUpperCase()}</button>)}</div></td>
-<td style={{padding:"13px 14px"}}><button onClick={()=>del(b.id)} className="ghost" style={{...Btn.ghost,fontSize:9,padding:"4px 8px",color:C.muted}}>TA BORT</button></td>
-</tr>
-))}
-</tbody>
-</table>}
-</div>
-</div>
-);
-}
-/* ══ SUCCESS ══ */
-function Success({ booking, onClose }) {
-return (
-<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:20,animation:"fadeIn 0.3s ease",fontFamily:F.B}}>
-<div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,animation:"scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) both"}}>
+BESKRIVNING:
+${b.description||"(ingen angiven)"}
 
-<div className="hazard" style={{height:10}}/>
-<div style={{background:C.panel,border:`1px solid ${C.border}`,borderTop:"none",borderBottom:"none"}}>
-<div style={{background:C.bg2,borderBottom:`1px solid ${C.border}`,padding:"16px 24px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<div>
-<p style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"2px",marginBottom:4}}>ARBETSORDER BEKRÄFTAD</p>
-<p style={{fontFamily:F.T,fontSize:24,color:C.text,letterSpacing:"1px"}}>BOKNING MOTTAGEN</p>
-</div>
-<div className="stamp" style={{width:72,height:72,borderRadius:"50%",border:`3px solid ${C.green}`,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",flexShrink:0}}>
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-<span style={{fontFamily:F.M,fontSize:7,color:C.green,letterSpacing:"1px",marginTop:3}}>GODKÄND</span>
-</div>
-</div>
-<div style={{padding:"22px 24px"}}>
-<p style={{color:C.sub,fontSize:14,lineHeight:1.7,marginBottom:20}}>Tack <strong style={{color:C.text}}>{booking.name}</strong>. Vi ringer dig på <span style={{fontFamily:F.M,color:C.accent}}>{booking.phone}</span> för bekräftelse.</p>
-<div style={{border:`1px solid ${C.border}`,background:C.bg2,marginBottom:20}}>
-<div style={{background:C.bg1,borderBottom:`1px solid ${C.border}`,padding:"8px 14px",display:"flex",justifyContent:"space-between"}}>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1.5px"}}>ORDERDETALJER</span>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted}}>{new Date().toLocaleDateString("sv-SE")}</span>
-</div>
-{[["TJÄNST",booking.jobType==="enkla"?"Snabbservice":"Större jobb"],["DATUM",booking.jobType==="enkla"?"Drop-in":fmtL(booking.date)],["TID",booking.time],["ORDER-ID",`#${booking.id.slice(-8)}`]].map(([l,v],i,a)=>(
-<div key={l} style={{display:"flex",padding:"10px 14px",borderBottom:i<a.length-1?`1px solid rgba(255,255,255,0.04)`:"none",alignItems:"center",gap:16}}>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1.5px",minWidth:68,flexShrink:0}}>{l}</span>
-<span style={{fontFamily:F.BC,fontWeight:700,fontSize:14,color:C.sub}}>{v}</span>
-</div>
-))}
-</div>
-<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-<a href={`tel:${WS.phonePlain}`} className="ghost" style={{...Btn.ghost,textDecoration:"none",textAlign:"center",padding:"12px",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.08 6.08l.27-.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-RING OSS
-</a>
-<button className="primary" style={{...Btn.primary,padding:"12px",fontSize:14,letterSpacing:"2px"}} onClick={onClose}>NY BOKNING</button>
-</div>
-</div>
-</div>
-<div className="hazard" style={{height:10}}/>
-</div>
-</div>
-);
+${"═".repeat(36)}
+Bokning-ID:  ${b.id}
+Inkommen:    ${new Date(b.createdAt).toLocaleString("sv-SE")}
+`);
+  window.open(`mailto:${WS.email}?subject=${sub}&body=${body}`,"_blank");
 }
-/* ══ MAIN APP ══ */
+
+/* ══════════════════════════════════════════
+   ATOMS
+══════════════════════════════════════════ */
+const GS   = () => <style dangerouslySetInnerHTML={{__html:CSS}}/>;
+const Mono = ({s="10",col,children,style={},...r}) =>
+  <span style={{fontFamily:F.mono,fontSize:s,letterSpacing:"1.5px",color:col||C.g2,...style}}>{children}</span>;
+const Cap  = ({children}) =>
+  <p style={{fontFamily:F.mono,fontSize:"9px",fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:C.g2,marginBottom:8}}>{children}</p>;
+const Rule = ({my=20,col}) =>
+  <div style={{height:1,background:col||C.bd,margin:`${my}px 0`}}/>;
+const ErrTxt = ({msg}) =>
+  <p style={{color:C.err,fontSize:13,marginTop:7,display:"flex",gap:5,alignItems:"center",fontFamily:F.body}}>
+    <span style={{fontWeight:700}}>—</span>{msg}
+  </p>;
+
+/* Logo badge */
+const KIBadge = ({size=38}) => (
+  <div style={{width:size,height:size,borderRadius:6,background:C.red,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:`0 4px 16px ${C.redGlow}`}}>
+    <span style={{fontFamily:F.display,fontSize:size*.48,fontWeight:900,color:"#fff",lineHeight:1,letterSpacing:"-1px"}}>KI</span>
+  </div>
+);
+
+/* Spinner */
+const Spin = () =>
+  <span style={{width:16,height:16,border:"2px solid rgba(255,255,255,.2)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite",display:"inline-block"}}/>;
+
+/* Buttons */
+function RedBtn({children,onClick,disabled,full,large,style={}}) {
+  const [press,setPress] = useState(false);
+  return (
+    <button className="btn-red" disabled={disabled} onClick={onClick}
+      onPointerDown={()=>setPress(true)} onPointerUp={()=>setPress(false)} onPointerLeave={()=>setPress(false)}
+      style={{background:`linear-gradient(150deg,${C.redL} 0%,${C.red} 50%,${C.redD} 100%)`,border:"none",borderRadius:6,
+        padding:large?"17px 28px":"13px 24px",width:full?"100%":"auto",color:"#fff",
+        fontFamily:F.display,fontWeight:900,fontSize:large?20:17,letterSpacing:"2px",textTransform:"uppercase",
+        transition:"all .2s ease",transform:press?"scale(.975)":"scale(1)",
+        boxShadow:press?"none":`0 6px 28px ${C.redGlow}`,opacity:disabled?.7:1,
+        display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+        minHeight:large?56:48,...style}}>
+      {disabled?<Spin/>:children}
+    </button>
+  );
+}
+
+function GhostBtn({children,onClick,full,style={}}) {
+  return (
+    <button className="btn-ghost" onClick={onClick}
+      style={{background:"transparent",border:`1px solid ${C.bd}`,borderRadius:6,
+        padding:"13px 20px",width:full?"100%":"auto",color:C.g1,fontFamily:F.body,
+        fontSize:14,fontWeight:500,transition:"all .18s",minHeight:48,...style}}>
+      {children}
+    </button>
+  );
+}
+
+/* Field */
+function Field({label,type="text",value,onChange,placeholder,error,min}) {
+  return (
+    <div style={{width:"100%"}}>
+      <Cap>{label}</Cap>
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)}
+        placeholder={placeholder} min={min} className="inp"
+        style={{width:"100%",background:C.surface,border:`1.5px solid ${error?C.err+"55":C.bd}`,
+          borderRadius:8,padding:"13px 16px",color:C.white,fontFamily:F.body,
+          transition:"border-color .2s,box-shadow .2s",minHeight:50}}/>
+      {error&&<ErrTxt msg={error}/>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   ADMIN PANEL
+══════════════════════════════════════════ */
+function Admin({onBack}) {
+  const [auth,setAuth] = useState(false);
+  const [pw,setPw]     = useState("");
+  const [pwErr,setErr] = useState(false);
+  const [busy,setBusy] = useState(false);
+  const [data,setData] = useState([]);
+  const [tab,setTab]   = useState("all");
+  const [q,setQ]       = useState("");
+
+  useEffect(()=>{ if(auth) setData(getAll()); },[auth]);
+
+  const upd = (id,s) => { const u=getAll().map(b=>b.id===id?{...b,status:s}:b); saveAll(u); setData(u); };
+  const del = id => { if(!confirm("Ta bort?"))return; const u=getAll().filter(b=>b.id!==id); saveAll(u); setData(u); };
+
+  const SC  = {Ny:C.red,Pågående:C.blue,Klar:C.ok};
+  const cnt = {all:data.length,Ny:data.filter(b=>b.status==="Ny").length,Pågående:data.filter(b=>b.status==="Pågående").length,Klar:data.filter(b=>b.status==="Klar").length};
+  const rows = data.filter(b=>tab==="all"||b.status===tab).filter(b=>!q||b.name.toLowerCase().includes(q.toLowerCase())||b.phone.includes(q)).sort((a,b)=>a.date>b.date?1:-1);
+
+  async function doLogin() {
+    setBusy(true); await new Promise(r=>setTimeout(r,500)); setBusy(false);
+    if(pw===ADM_PW) setAuth(true); else { setErr(true); setPw(""); }
+  }
+
+  /* Login screen */
+  if(!auth) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:20,fontFamily:F.body,overflowX:"hidden",width:"100%"}}>
+      <GS/>
+      <div style={{width:"100%",maxWidth:380}}>
+        <button className="btn-ghost" onClick={onBack} style={{...ghostBase,fontSize:13,marginBottom:40}}>← Tillbaka</button>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+          <KIBadge size={42}/>
+          <div>
+            <p style={{fontFamily:F.display,fontSize:22,fontWeight:900,color:C.white,letterSpacing:"1px",textTransform:"uppercase",lineHeight:1}}>{WS.name}</p>
+            <Mono s="9" col={C.g2} style={{letterSpacing:"2px"}}>ADMINPANEL</Mono>
+          </div>
+        </div>
+        <Rule my={28}/>
+        <Cap>Lösenord</Cap>
+        <input type="password" value={pw} autoFocus placeholder="••••••••••" className="inp"
+          onChange={e=>{setPw(e.target.value);setErr(false);}}
+          onKeyDown={e=>{ if(e.key==="Enter") doLogin(); }}
+          style={{width:"100%",background:C.surface,border:`1.5px solid ${pwErr?C.err+"55":C.bd}`,borderRadius:8,padding:"13px 16px",color:C.white,fontFamily:F.body,minHeight:50,marginBottom:6}}/>
+        {pwErr&&<ErrTxt msg="Fel lösenord. Försök igen."/>}
+        <RedBtn full large onClick={doLogin} disabled={busy} style={{marginTop:14}}>{busy?<Spin/>:"Logga in"}</RedBtn>
+      </div>
+    </div>
+  );
+
+  /* Admin dashboard */
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:F.body,color:C.white,overflowX:"hidden",width:"100%"}}>
+      <GS/>
+      {/* Topbar */}
+      <div style={{background:"rgba(14,14,18,.96)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.bd}`,height:54,display:"flex",alignItems:"center",padding:"0 20px",gap:14,position:"sticky",top:0,zIndex:50}}>
+        <button className="btn-ghost" onClick={onBack} style={{...ghostBase,fontSize:12,padding:"5px 12px",minHeight:34}}>← Bokning</button>
+        <div style={{width:1,height:14,background:C.bd}}/>
+        <Mono s="10" col={C.g2}>ADMIN — {WS.name.toUpperCase()}</Mono>
+        <div style={{marginLeft:"auto"}}>
+          <input placeholder="Sök kund…" value={q} onChange={e=>setQ(e.target.value)} className="inp"
+            style={{background:C.surface,border:`1px solid ${C.bd}`,borderRadius:6,padding:"0 12px",height:34,width:180,color:C.white,fontFamily:F.body}}/>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="stat-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderBottom:`1px solid ${C.bd}`}}>
+        {[{l:"ALLA",n:cnt.all,c:C.g1,k:"all"},{l:"NYA",n:cnt.Ny,c:C.red,k:"Ny"},{l:"PÅGÅENDE",n:cnt.Pågående,c:C.blue,k:"Pågående"},{l:"KLARA",n:cnt.Klar,c:C.ok,k:"Klar"}].map((x,i)=>(
+          <div key={x.k} onClick={()=>setTab(x.k)} style={{padding:"18px 20px",cursor:"pointer",borderRight:i<3?`1px solid ${C.bd}`:"none",background:tab===x.k?`${x.c}0C`:"transparent",transition:"background .2s"}}>
+            <Mono s="9" col={C.g3} style={{display:"block",marginBottom:8}}>{x.l}</Mono>
+            <p style={{fontFamily:F.display,fontSize:44,fontWeight:900,color:x.c,lineHeight:1,letterSpacing:"-2px"}}>{x.n}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{padding:"12px 20px",display:"flex",gap:6,borderBottom:`1px solid ${C.bd}`,flexWrap:"wrap"}}>
+        {["all","Ny","Pågående","Klar"].map(f=>(
+          <button key={f} className="btn-ghost" onClick={()=>setTab(f)}
+            style={{...ghostBase,fontSize:11,padding:"5px 13px",letterSpacing:".5px",...(tab===f?{borderColor:`${C.red}55`,color:C.red,background:C.redDim}:{})}}>
+            {f==="all"?"Alla":f}
+          </button>
+        ))}
+      </div>
+
+      {/* Cards */}
+      <div style={{padding:"12px 20px 60px",display:"flex",flexDirection:"column",gap:10}}>
+        {rows.length===0?(
+          <div style={{textAlign:"center",padding:"80px 20px"}}>
+            <p style={{fontFamily:F.display,fontSize:28,fontWeight:900,color:C.g3,letterSpacing:"3px",textTransform:"uppercase"}}>Inga bokningar</p>
+          </div>
+        ):rows.map(b=>(
+          <div key={b.id} className="admin-row" style={{background:C.card,border:`1px solid ${C.bd}`,borderRadius:10,overflow:"hidden",borderLeft:`3px solid ${SC[b.status]||C.red}`,transition:"background .15s"}}>
+            <div style={{padding:"16px 18px"}}>
+              {/* Header row */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,gap:8,flexWrap:"wrap"}}>
+                <div>
+                  <Mono s="9" col={C.red} style={{display:"block",marginBottom:4}}>{orderNo(b.id)}</Mono>
+                  <p style={{fontFamily:F.display,fontSize:22,fontWeight:900,color:C.white,letterSpacing:".5px"}}>{b.name}</p>
+                </div>
+                <span style={{fontFamily:F.mono,fontSize:10,fontWeight:700,letterSpacing:"1.5px",color:SC[b.status],background:`${SC[b.status]}18`,padding:"5px 10px",border:`1px solid ${SC[b.status]}30`,borderRadius:4}}>{b.status?.toUpperCase()}</span>
+              </div>
+              {/* Details */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:14}}>
+                {[["Datum",b.date||"Drop-in"],["Tid",b.time],["Telefon",b.phone],["Tjänst",b.jobType==="enkla"?"Snabbservice":"Större jobb"]].map(([l,v])=>(
+                  <div key={l}>
+                    <Mono s="8" col={C.g3} style={{display:"block",marginBottom:3}}>{l.toUpperCase()}</Mono>
+                    <p style={{color:C.g1,fontSize:13,fontWeight:500}}>{v}</p>
+                  </div>
+                ))}
+              </div>
+              {b.description&&<p style={{color:C.g2,fontSize:13,lineHeight:1.6,background:C.surface,padding:"9px 12px",borderRadius:6,marginBottom:12,borderLeft:`2px solid ${C.g3}`}}>{b.description}</p>}
+              {/* Actions */}
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {["Ny","Pågående","Klar"].map(s=>(
+                  <button key={s} onClick={()=>upd(b.id,s)}
+                    style={{flex:1,minWidth:70,padding:"8px 4px",borderRadius:6,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:F.mono,letterSpacing:".8px",textTransform:"uppercase",background:b.status===s?`${SC[s]}22`:"rgba(255,255,255,.04)",color:b.status===s?SC[s]:C.g2,transition:"all .15s",minHeight:38}}>
+                    {s}
+                  </button>
+                ))}
+                <button className="btn-ghost" onClick={()=>del(b.id)} style={{...ghostBase,fontSize:11,padding:"8px 14px",color:C.g2,minHeight:38}}>Ta bort</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   SUCCESS MODAL
+══════════════════════════════════════════ */
+function SuccessModal({booking,onClose}) {
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",backdropFilter:"blur(20px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16,fontFamily:F.body,animation:"fadeIn .25s ease"}} onClick={onClose}>
+      <div style={{background:C.card,width:"100%",maxWidth:460,borderRadius:12,overflow:"hidden",border:`1px solid ${C.bd}`,boxShadow:"0 60px 140px rgba(0,0,0,.8)",animation:"popIn .32s cubic-bezier(.22,1,.36,1) both"}} onClick={e=>e.stopPropagation()}>
+        {/* Red top stripe */}
+        <div style={{height:3,background:`linear-gradient(90deg,${C.redD},${C.red},${C.redL})`}}/>
+        {/* Order header */}
+        <div style={{background:C.cardAlt,borderBottom:`1px solid ${C.bd}`,padding:"14px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <Mono s="8" col={C.g3} style={{display:"block",marginBottom:4}}>ARBETSORDER</Mono>
+            <Mono s="14" col={C.red} style={{fontWeight:700}}>{orderNo(booking.id)}</Mono>
+          </div>
+          <span style={{fontFamily:F.mono,fontSize:10,fontWeight:700,letterSpacing:"1.5px",color:C.ok,background:`${C.ok}15`,padding:"5px 10px",border:`1px solid ${C.ok}30`,borderRadius:4}}>BEKRÄFTAD</span>
+        </div>
+        <div className="modal-body" style={{padding:"24px 22px 20px"}}>
+          {/* Check + title */}
+          <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:20}}>
+            <div style={{width:48,height:48,background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <polyline points="4,11 9,16 18,5" stroke={C.red} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="60" strokeDashoffset="60" style={{animation:"drawCheck .5s .1s ease forwards"}}/>
+              </svg>
+            </div>
+            <div>
+              <h2 style={{fontFamily:F.display,fontSize:"clamp(24px,5vw,30px)",fontWeight:900,color:C.white,letterSpacing:"1px",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>Bokning mottagen</h2>
+              <p style={{color:C.g1,fontSize:14,lineHeight:1.65}}>Vi ringer dig på <strong style={{color:C.white}}>{booking.phone}</strong> för att bekräfta.</p>
+            </div>
+          </div>
+          {/* Details */}
+          <div style={{border:`1px solid ${C.bd}`,borderRadius:8,overflow:"hidden",marginBottom:18}}>
+            <div style={{background:C.cardAlt,padding:"7px 14px",borderBottom:`1px solid ${C.bd}`}}>
+              <Mono s="8" col={C.g3}>BOKNINGSDETALJER</Mono>
+            </div>
+            {[["Tjänst",booking.jobType==="enkla"?"Snabbservice":"Större jobb"],["Datum",booking.jobType==="enkla"?"Drop-in":fmtLong(booking.date)],["Tid",booking.time],["Kund",booking.name]].map(([l,v],i,a)=>(
+              <div key={l} style={{display:"flex",gap:12,padding:"10px 14px",borderBottom:i<a.length-1?`1px solid ${C.bdFaint}`:"none",background:i%2?"rgba(255,255,255,.012)":"transparent"}}>
+                <Mono s="8" col={C.g3} style={{minWidth:58,paddingTop:2,flexShrink:0,textTransform:"uppercase"}}>{l}</Mono>
+                <span style={{color:C.g1,fontSize:13,fontWeight:500,lineHeight:1.5}}>{cap(v)}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <a href={`tel:${WS.tel}`} className="btn-ghost" style={{...ghostBase,textDecoration:"none",textAlign:"center",display:"block",padding:"12px",fontSize:13}}>Ring oss</a>
+            <RedBtn onClick={onClose}>Stäng</RedBtn>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   MAIN APP
+══════════════════════════════════════════ */
 export default function App() {
-const [view,setView] = useState("booking");
-const [step,setStep] = useState(1);
-const [dir,setDir] = useState("up");
-const [confirmed,setConfirmed] = useState(null);
+  const [view,setView]   = useState("book");
+  const [step,setStep]   = useState(1);
+  const [dir,setDir]     = useState("up");
+  const [conf,setConf]   = useState(null);
+  const [errs,setErrs]   = useState({});
+  const [booked,setBook] = useState([]);
+  const [cnt,setCnt]     = useState(0);
+  const [imgPrev,setImg] = useState(null);
+  const [busy,setBusy]   = useState(false);
+  const [form,setForm]   = useState({name:"",phone:"",email:"",jobType:"",date:"",time:"",tags:[],desc:"",image:null});
 
-const [errors,setErrors] = useState({});
-const [booked,setBooked] = useState([]);
-const [count,setCount] = useState(0);
-const [prev,setPrev] = useState(null);
-const [sub,setSub] = useState(false);
-const [clock,setClock] = useState(curTime());
-const [form,setForm] = useState({name:"",phone:"",email:"",regno:"",jobType:"",date:"",time:"",tags:[],description:"",image:null});
-useEffect(()=>{ const t=setInterval(()=>setClock(curTime()),30000); return()=>clearInterval(t) },[]);
-const refresh=useCallback((d)=>{ if(!d||isWe(d)||isPast(d)){setBooked([]);setCount(0);return} setBooked(slotsOn(d));setCount(storaOn(d)) },[]);
-useEffect(()=>{ refresh(form.date) },[form.date,refresh]);
-function set(f,v){ setForm(p=>({...p,[f]:v})); if(errors[f]) setErrors(e=>({...e,[f]:undefined})) }
-function toggleTag(t){ setForm(p=>({...p,tags:p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags,t]})) }
-function go(n){ setDir(n>step?"up":"down"); setStep(n); setErrors({}) }
-function validate(){
-const e={};
-if(step===1){ if(!form.name.trim())e.name="Namn krävs"; if(!form.phone.trim())e.phone="Telefon krävs"; if(!/^\S+@\S+\.\S+$/.test(form.email))e.email="Ogiltig e-postadress" }
-if(step===2){ if(!form.jobType)e.jobType="Välj tjänst"; if(form.jobType==="stora"){ if(!form.date)e.date="Datum krävs"; else if(isWe(form.date))e.date="Välj vardag (mån–fre)"; else if(count>=MAX)e.date="Fullbokat"; if(!form.time)e.time="Välj tid" } }
-return e;
+  const refresh = useCallback(d=>{ if(!d||isWknd(d)||isPast(d)){setBook([]);setCnt(0);return;} setBook(slotsOn(d)); setCnt(storaOn(d)); },[]);
+  useEffect(()=>{ refresh(form.date); },[form.date,refresh]);
+
+  const set = (k,v) => { setForm(p=>({...p,[k]:v})); if(errs[k]) setErrs(e=>({...e,[k]:undefined})); };
+  const tag = t => setForm(p=>({...p,tags:p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags,t]}));
+
+  function go(to) { setDir(to>step?"up":"down"); setTimeout(()=>{ setStep(to); setErrs({}); },10); }
+
+  function validate() {
+    const e={};
+    if(step===1){ if(!form.name.trim())e.name="Namn krävs"; if(!form.phone.trim())e.phone="Telefon krävs"; if(!/^\S+@\S+\.\S+$/.test(form.email))e.email="Ogiltig e-postadress"; }
+    if(step===2){ if(!form.jobType)e.jobType="Välj en tjänst för att fortsätta"; if(form.jobType==="stora"){if(!form.date)e.date="Välj ett datum";else if(isWknd(form.date))e.date="Välj en vardag (mån–fre)";else if(cnt>=MAX)e.date="Fullbokat — välj ett annat datum"; if(!form.time)e.time="Välj en tillgänglig tid";} }
+    return e;
+  }
+  function next(){ const e=validate(); if(Object.keys(e).length){setErrs(e);return;} go(step+1); }
+
+  function handleImg(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>{setImg(ev.target.result);set("image",ev.target.result);}; r.readAsDataURL(f); }
+
+  async function submit(){
+    setBusy(true); await new Promise(r=>setTimeout(r,700));
+    const desc=[form.tags.length?form.tags.join(", "):null,form.desc||null].filter(Boolean).join("\n\n");
+    const b={id:Date.now().toString(),...form,description:desc,date:form.jobType==="enkla"?todayStr():form.date,time:form.jobType==="enkla"?"Drop-in":form.time,status:"Ny",createdAt:new Date().toISOString()};
+    saveAll([...getAll(),b]); sendMail(b); setBusy(false); setConf(b);
+  }
+
+  function reset(){ setConf(null); setForm({name:"",phone:"",email:"",jobType:"",date:"",time:"",tags:[],desc:"",image:null}); setImg(null); go(1); }
+
+  if(view==="admin") return <Admin onBack={()=>setView("book")}/>;
+
+  const avail = SLOTS.filter(s=>!booked.includes(s));
+  const full  = form.jobType==="stora"&&form.date&&cnt>=MAX;
+  const pct   = ((step-1)/(STEPS.length-1))*100;
+
+  const summary=[
+    ["Kund",    form.name],
+    ["Telefon", form.phone],
+    ["E-post",  form.email],
+    ["Tjänst",  form.jobType==="enkla"?"Snabbservice":form.jobType==="stora"?"Större jobb":"–"],
+    ...(form.jobType==="stora"?[["Datum",fmtLong(form.date)],["Tid",form.time]]:[]),
+    ...(form.tags.length?[["Kategori",form.tags.join(", ")]]:[]),
+    ...(form.desc?[["Notering",form.desc]]:[]),
+  ].filter(([,v])=>v&&v!=="–");
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:F.body,color:C.white,overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
+      <GS/>
+
+      {/* ────────── HEADER ────────── */}
+      <header style={{background:C.surface,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:40,width:"100%"}}>
+        {/* Red top line */}
+        <div style={{height:3,background:`linear-gradient(90deg,${C.redD},${C.red} 40%,transparent)`}}/>
+        <div className="header-inner" style={{maxWidth:780,margin:"0 auto",height:58,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",boxSizing:"border-box"}}>
+          {/* Logo */}
+          <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0,flex:1,overflow:"hidden"}}>
+            <KIBadge size={36}/>
+            <div style={{minWidth:0}}>
+              <p className="hdr-wordmark" style={{fontFamily:F.display,fontSize:"clamp(14px,3vw,18px)",fontWeight:900,color:C.white,letterSpacing:"1px",textTransform:"uppercase",lineHeight:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                {WS.name}
+              </p>
+              <Mono s="9" col={C.g2} style={{letterSpacing:"2px",whiteSpace:"nowrap"}}>{WS.tagline.toUpperCase()}</Mono>
+            </div>
+          </div>
+          {/* Right */}
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+            <a href={`tel:${WS.tel}`} className="nav-link"
+              style={{fontFamily:F.mono,fontSize:13,color:C.g1,textDecoration:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"7px 14px",display:"flex",alignItems:"center",gap:7,minHeight:40,transition:"color .18s",whiteSpace:"nowrap"}}>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{flexShrink:0}}>
+                <path d="M2 2.5s1 3 3 5 4.5 4 4.5 4l2-2-2.5-2.5L7.5 8.5S6 7 5 6 2.5 3.5 2.5 3.5L4 2 1.5.5 2 2.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>{WS.phone}</span>
+            </a>
+            <button className="btn-ghost" onClick={()=>setView("admin")} style={{...ghostBase,fontSize:11,padding:"7px 12px",fontFamily:F.mono,letterSpacing:"1px",color:C.g2,minHeight:40}}>ADMIN</button>
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div style={{height:2,background:C.stripe}}>
+          <div style={{height:"100%",background:`linear-gradient(90deg,${C.redD},${C.red})`,width:`${pct}%`,transition:"width .5s cubic-bezier(.22,1,.36,1)"}}/>
+        </div>
+      </header>
+
+      <main className="main-wrap" style={{maxWidth:600,margin:"0 auto",padding:"44px 16px 90px",width:"100%",boxSizing:"border-box"}}>
+
+        {/* ────────── HERO ────────── */}
+        <div className="hero-section" style={{padding:"0 0",marginBottom:48,overflow:"hidden"}}>
+
+          {/* Live badge */}
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:4,padding:"5px 12px",marginBottom:18}}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:C.red,animation:"pulse 2s ease-in-out infinite",flexShrink:0}}/>
+            <Mono s="9" col={C.red}>BOKNING ÖPPEN</Mono>
+          </div>
+
+          <h1 className="hero-title" style={{fontFamily:F.display,fontWeight:900,textTransform:"uppercase",letterSpacing:"-1.5px",lineHeight:.9,marginBottom:16,color:C.white,wordBreak:"break-word"}}>
+            Boka din<br/>
+            <span style={{color:C.red}}>Bilservice</span>
+          </h1>
+
+          <p style={{color:C.g1,fontSize:15,lineHeight:1.8,maxWidth:360}}>
+            Ring oss direkt på{" "}
+            <a href={`tel:${WS.tel}`} style={{color:C.red,textDecoration:"none",fontWeight:600,borderBottom:`1px solid ${C.red}44`}}>{WS.phone}</a>
+            {" "}eller fyll i formuläret nedan.
+          </p>
+
+          {/* Quick info bar */}
+          <div style={{display:"flex",gap:0,marginTop:24,border:`1px solid ${C.bd}`,borderRadius:8,overflow:"hidden",flexWrap:"wrap"}}>
+            {[["Öppettider",WS.hours],["Plats",WS.city],[WS.est,"Erfarenhet"]].map(([l,v],i)=>(
+              <div key={l} style={{flex:"1 1 140px",padding:"12px 16px",borderRight:i<2?`1px solid ${C.bd}`:"none"}}>
+                <Mono s="8" col={C.g3} style={{display:"block",marginBottom:4}}>{l.toUpperCase()}</Mono>
+                <p style={{color:C.g1,fontSize:13,fontWeight:500}}>{v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ────────── STEP DOTS ────────── */}
+        <div style={{marginBottom:28,display:"flex",alignItems:"flex-start",width:"100%"}}>
+          {STEPS.map((s,i)=>{
+            const done=step>s.n, cur=step===s.n;
+            return (
+              <div key={s.n} style={{display:"flex",alignItems:"flex-start",flex:i<STEPS.length-1?1:"none"}}>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                  <div style={{width:32,height:32,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F.mono,fontSize:11,fontWeight:600,flexShrink:0,transition:"all .3s ease",background:done?C.red:cur?C.redDim:C.g3,color:done?"#fff":cur?C.red:C.g2,border:`1.5px solid ${done?C.red:cur?`${C.red}60`:C.g3}`,boxShadow:cur?`0 0 0 3px ${C.redDim},0 0 20px ${C.redGlow}`:"none"}}>
+                    {done?<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>:`0${s.n}`}
+                  </div>
+                  <span className="step-labels" style={{fontFamily:F.mono,fontSize:8,letterSpacing:"1px",textTransform:"uppercase",color:done||cur?C.red:C.g3,transition:"color .3s",whiteSpace:"nowrap"}}>{s.l}</span>
+                </div>
+                {i<STEPS.length-1&&<div style={{flex:1,height:1.5,marginTop:15,background:step>s.n?C.red:C.g3,transition:"background .4s"}}/>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ────────── STEP CARDS ────────── */}
+        <div key={step} className={dir==="up"?"step-in":"step-out"}>
+
+          {/* ══ STEP 1: KONTAKT ══ */}
+          {step===1&&(
+            <Card>
+              <CardHead num="01" title="Dina uppgifter" sub="Vi kontaktar dig på dessa uppgifter."/>
+              <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                <Field label="Fullständigt namn"  type="text"  value={form.name}  onChange={v=>set("name",v)}  placeholder="Förnamn Efternamn" error={errs.name}/>
+                <Field label="Telefonnummer"       type="tel"   value={form.phone} onChange={v=>set("phone",v)} placeholder="070 – XXX XX XX"   error={errs.phone}/>
+                <Field label="E-postadress"        type="email" value={form.email} onChange={v=>set("email",v)} placeholder="din@email.se"       error={errs.email}/>
+              </div>
+              <CardNav onNext={next}/>
+            </Card>
+          )}
+
+          {/* ══ STEP 2: TJÄNST ══ */}
+          {step===2&&(
+            <Card>
+              <CardHead num="02" title="Välj tjänst" sub="Välj det som passar ditt ärende bäst."/>
+              {errs.jobType&&<ErrTxt msg={errs.jobType}/>}
+
+              {/* Service cards */}
+              <div className="svc-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18,marginTop:8}}>
+                {[
+                  {v:"enkla",code:"S-01",title:"Snabbservice",sub:"Oljebyte, filter, däck – inget bokningskrav"},
+                  {v:"stora",code:"J-02",title:"Större jobb", sub:"Motor, diagnos, broms – tidsbokning krävs"},
+                ].map(svc=>{
+                  const active=form.jobType===svc.v;
+                  return (
+                    <button key={svc.v} className="svc-card" onClick={()=>set("jobType",svc.v)}
+                      style={{background:active?C.redDim:"transparent",border:`1.5px solid ${active?C.red:C.bd}`,borderRadius:8,padding:"20px 16px",textAlign:"left",transition:"all .2s ease",position:"relative",overflow:"hidden",borderLeft:active?`3px solid ${C.red}`:undefined,minHeight:120,display:"flex",flexDirection:"column",boxShadow:active?`0 0 0 1px ${C.red}20,0 8px 32px ${C.redGlow}`:"0 2px 8px rgba(0,0,0,.2)"}}>
+                      <Mono s="8" col={active?C.red:C.g3} style={{display:"block",marginBottom:12,transition:"color .2s"}}>{svc.code}</Mono>
+                      <p style={{fontFamily:F.display,fontSize:20,fontWeight:900,color:active?C.white:C.g1,textTransform:"uppercase",letterSpacing:".5px",marginBottom:5,transition:"color .2s",lineHeight:1}}>{svc.title}</p>
+                      <p style={{color:C.g2,fontSize:12,lineHeight:1.5,flex:1}}>{svc.sub}</p>
+                      {active&&<Mono s="8" col={C.red} style={{marginTop:10,display:"block"}}>Vald ✓</Mono>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Snabb info panel */}
+              {form.jobType==="enkla"&&(
+                <div style={{background:C.redDim,borderLeft:`3px solid ${C.red}`,borderRadius:"0 8px 8px 0",padding:"14px 16px",marginBottom:4}}>
+                  <Mono s="9" col={C.red} style={{display:"block",marginBottom:5}}>DROP-IN VÄLKOMMET</Mono>
+                  <p style={{color:C.g1,fontSize:13,lineHeight:1.7}}>Ingen tidsbokning krävs. Besök oss direkt — <strong style={{color:C.white}}>{WS.hours}</strong></p>
+                </div>
+              )}
+
+              {/* Stora: date + time */}
+              {form.jobType==="stora"&&(
+                <div style={{borderTop:`1px solid ${C.bd}`,paddingTop:20,marginTop:4}}>
+                  <Field label="Datum — måndag till fredag" type="date" min={todayStr()} value={form.date} error={errs.date}
+                    onChange={v=>{ set("date",v); set("time",""); if(isWknd(v))setErrs(r=>({...r,date:"Välj en vardag (mån–fre)"})); else setErrs(r=>({...r,date:undefined})); }}/>
+                  {form.date&&!isWknd(form.date)&&!errs.date&&(
+                    <p style={{fontFamily:F.mono,fontSize:9,color:C.red,marginTop:8,letterSpacing:"1px"}}>
+                      {avail.length>0?`${avail.length} / ${SLOTS.length} TIDER TILLGÄNGLIGA`:"INGA LEDIGA TIDER"}
+                    </p>
+                  )}
+
+                  {form.date&&!isWknd(form.date)&&!full&&(
+                    <div style={{marginTop:18}}>
+                      <Cap>Välj tid</Cap>
+                      {errs.time&&<ErrTxt msg={errs.time}/>}
+                      <div className="slot-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:8}}>
+                        {SLOTS.map(sl=>{
+                          const taken=booked.includes(sl), active=form.time===sl;
+                          return (
+                            <button key={sl} disabled={taken} className={!taken?"slot-btn":""}
+                              onClick={()=>!taken&&set("time",sl)}
+                              style={{padding:"15px 8px",borderRadius:6,fontFamily:F.mono,fontSize:16,fontWeight:600,letterSpacing:"1px",border:`1.5px solid ${active?C.red:taken?"rgba(255,255,255,.03)":C.bd}`,background:active?C.redDim:taken?"rgba(255,255,255,.01)":"transparent",color:taken?C.g3:active?C.red:C.g1,cursor:taken?"default":"pointer",opacity:taken?.3:1,transition:"all .18s",boxShadow:active?`0 0 24px ${C.redGlow}`:"none",minHeight:62}}>
+                              {sl}
+                              <span style={{display:"block",fontFamily:F.mono,fontSize:8,marginTop:5,letterSpacing:"1.5px",textTransform:"uppercase",color:taken?C.g3:active?C.red:C.g3}}>{taken?"Bokad":"Ledig"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {full&&(
+                    <div style={{background:`${C.err}10`,borderLeft:`3px solid ${C.err}`,borderRadius:"0 6px 6px 0",padding:"12px 16px",marginTop:16}}>
+                      <p style={{color:C.err,fontSize:13,fontWeight:500}}>Fullbokat detta datum. Välj ett annat datum.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <CardNav onNext={next} onBack={()=>go(1)}/>
+            </Card>
+          )}
+
+          {/* ══ STEP 3: ÄRENDE ══ */}
+          {step===3&&(
+            <Card>
+              <CardHead num="03" title="Beskriv ärendet" sub="Välj kategori och/eller beskriv felet med egna ord."/>
+              {/* Tags */}
+              <div style={{marginBottom:18}}>
+                <Cap>Kategori <span style={{fontFamily:F.body,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:11,color:C.g3}}>— valfritt, välj en eller flera</span></Cap>
+                <div style={{display:"flex",flexWrap:"wrap",gap:7,marginTop:8}}>
+                  {TAGS.map(t=>{
+                    const sel=form.tags.includes(t);
+                    return (
+                      <button key={t} onClick={()=>tag(t)} className="tag-pill"
+                        style={{padding:"8px 14px",borderRadius:6,fontFamily:F.mono,fontSize:10,fontWeight:600,letterSpacing:".5px",textTransform:"uppercase",border:`1px solid ${sel?C.red:C.bd}`,background:sel?C.redDim:"transparent",color:sel?C.red:C.g1,transition:"all .15s",minHeight:38}}>
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Textarea */}
+              <div style={{marginBottom:20}}>
+                <Cap>Beskrivning <span style={{fontFamily:F.body,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:11,color:C.g3}}>— valfritt</span></Cap>
+                <textarea value={form.desc} rows={4} onChange={e=>set("desc",e.target.value)} className="inp"
+                  placeholder="Beskriv felet, symptom och hur länge det har pågått…"
+                  style={{width:"100%",background:C.surface,border:`1.5px solid ${C.bd}`,borderRadius:8,padding:"13px 16px",color:C.white,fontFamily:F.body,resize:"vertical",lineHeight:1.75,minHeight:110,transition:"border-color .2s,box-shadow .2s",marginTop:8}}/>
+              </div>
+              {/* Image upload */}
+              <div>
+                <Cap>Bifoga bild <span style={{fontFamily:F.body,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:11,color:C.g3}}>— valfritt</span></Cap>
+                <label style={{cursor:"pointer",display:"block",marginTop:8}}>
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={handleImg}/>
+                  {imgPrev?(
+                    <div style={{borderRadius:8,overflow:"hidden",border:`1px solid ${C.bd}`,position:"relative"}}>
+                      <img src={imgPrev} alt="" style={{width:"100%",maxHeight:220,objectFit:"cover"}}/>
+                      <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 45%)",display:"flex",alignItems:"flex-end",padding:"12px 16px"}}>
+                        <Mono s="10" col={C.g1}>BYTA BILD →</Mono>
+                      </div>
+                    </div>
+                  ):(
+                    <div style={{border:`1.5px dashed ${C.bd}`,borderRadius:8,padding:"40px 20px",textAlign:"center",background:"rgba(255,255,255,.01)"}}>
+                      <div style={{width:46,height:46,border:`1px solid ${C.bd}`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",background:"rgba(255,255,255,.02)"}}>
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v14M2 9h14" stroke={C.g3} strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      </div>
+                      <p style={{color:C.g1,fontSize:14,fontWeight:500,marginBottom:4}}>Klicka för att ladda upp</p>
+                      <Mono s="9" col={C.g3}>JPG / PNG — MAX 10 MB</Mono>
+                    </div>
+                  )}
+                </label>
+              </div>
+              <CardNav onNext={next} onBack={()=>go(2)} nextLabel="Granska bokning"/>
+            </Card>
+          )}
+
+          {/* ══ STEP 4: BEKRÄFTA ══ */}
+          {step===4&&(
+            <Card>
+              <CardHead num="04" title="Bekräfta" sub="Kontrollera dina uppgifter och bekräfta bokningen."/>
+              {/* Order number badge */}
+              <div style={{background:C.cardAlt,border:`1px solid ${C.bd}`,borderRadius:6,padding:"12px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div>
+                  <Mono s="8" col={C.g3} style={{display:"block",marginBottom:3}}>ARBETSORDER</Mono>
+                  <Mono s="14" col={C.red} style={{fontWeight:700}}>{orderNo(Date.now().toString())}</Mono>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <Mono s="8" col={C.g3} style={{display:"block",marginBottom:3}}>DATUM</Mono>
+                  <Mono s="12" col={C.g1}>{new Date().toLocaleDateString("sv-SE")}</Mono>
+                </div>
+              </div>
+              {/* Summary table */}
+              <div style={{border:`1px solid ${C.bd}`,borderRadius:8,overflow:"hidden",marginBottom:18}}>
+                <div style={{background:C.cardAlt,padding:"7px 14px",borderBottom:`1px solid ${C.bd}`}}>
+                  <Mono s="8" col={C.g3}>BOKNINGSDETALJER</Mono>
+                </div>
+                {summary.map(([l,v],i,a)=>(
+                  <div key={l} style={{display:"flex",gap:12,padding:"11px 14px",borderBottom:i<a.length-1?`1px solid ${C.bdFaint}`:"none",background:i%2?"rgba(255,255,255,.012)":"transparent",flexWrap:"wrap"}}>
+                    <Mono s="8" col={C.g3} style={{minWidth:68,paddingTop:2,flexShrink:0,textTransform:"uppercase"}}>{l}</Mono>
+                    <span style={{color:C.g1,fontSize:13,fontWeight:500,flex:1,lineHeight:1.5,wordBreak:"break-word"}}>{cap(v)}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{fontFamily:F.mono,color:C.g3,fontSize:10,lineHeight:1.8,marginBottom:20,letterSpacing:".3px"}}>
+                VI RINGER DIG PÅ <span style={{color:C.g2}}>{form.phone}</span> FÖR ATT BEKRÄFTA BOKNINGEN.
+              </p>
+              <RedBtn full large onClick={submit} disabled={busy}>{busy?<Spin/>:"Bekräfta bokning"}</RedBtn>
+              <GhostBtn full onClick={()=>go(3)} style={{marginTop:8}}>Gå tillbaka</GhostBtn>
+            </Card>
+          )}
+        </div>
+
+        {/* ────────── FOOTER ────────── */}
+        <div className="footer-inner" style={{marginTop:40,paddingTop:20,borderTop:`1px solid ${C.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px 20px"}}>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
+            <a href={`tel:${WS.tel}`} className="nav-link" style={{fontFamily:F.mono,fontSize:11,color:C.g2,textDecoration:"none",transition:"color .18s"}}>{WS.phone}</a>
+            <a href={`mailto:${WS.email}`} className="nav-link" style={{fontFamily:F.mono,fontSize:11,color:C.g3,textDecoration:"none",transition:"color .18s"}}>{WS.email}</a>
+          </div>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+            <Mono s="11" col={C.g3}>{WS.hours}</Mono>
+            <Mono s="11" col={C.g3} style={{opacity:.5}}>{WS.est}</Mono>
+          </div>
+        </div>
+      </main>
+
+      {conf&&<SuccessModal booking={conf} onClose={reset}/>}
+    </div>
+  );
 }
-function next(){ const e=validate(); if(Object.keys(e).length){setErrors(e);return} go(step+1) }
-function handleImg(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>{setPrev(ev.target.result);set("image",ev.target.result)}; r.readAsDataURL(f) }
-async function submit(){
-setSub(true); await new Promise(r=>setTimeout(r,800));
-const desc=[form.tags.length?form.tags.join(", "):null,form.description||null].filter(Boolean).join("\n\n");
-const b={id:Date.now().toString(),...form,description:desc,date:form.jobType==="enkla"?tod():form.date,time:form.jobType==="enkla"?"Drop-in":form.time,status:"Ny",createdAt:new Date().toISOString()};
-saveAll([...getAll(),b]); sendMail(b); setSub(false); setConfirmed(b);
+
+/* ══════════════════════════════════════════
+   LAYOUT COMPONENTS
+══════════════════════════════════════════ */
+function Card({children}) {
+  return (
+    <div style={{background:C.card,border:`1px solid ${C.bd}`,borderRadius:12,overflow:"hidden",boxShadow:"0 20px 70px rgba(0,0,0,.55)",position:"relative",width:"100%",boxSizing:"border-box"}}>
+      {/* Red left accent */}
+      <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:`linear-gradient(180deg,${C.red},${C.redD} 55%,transparent)`,zIndex:1}}/>
+      <div className="card-inner" style={{padding:"28px 28px 28px 32px"}}>{children}</div>
+    </div>
+  );
 }
-function reset(){ setConfirmed(null); setForm({name:"",phone:"",email:"",regno:"",jobType:"",date:"",time:"",tags:[],description:"",image:null}); setPrev(null); go(1) }
-if(view==="admin") return <Admin onBack={()=>setView("booking")}/>;
-const avail = SLOTS.filter(sl=>!booked.includes(sl));
-const isFull = form.jobType==="stora"&&form.date&&count>=MAX;
-const pct = ((step-1)/4)*100;
-const summaryRows=[
-["NAMN",form.name],["TELEFON",form.phone],["E-POST",form.email],
-...(form.regno?[["REG.NR",form.regno]]:[]),
-["TJÄNST",form.jobType==="enkla"?"Snabbservice":form.jobType==="stora"?"Större jobb":"–"],
-...(form.jobType==="stora"?[["DATUM",fmtL(form.date)],["TID",form.time]]:[]),
-...(form.tags.length?[["FEL",form.tags.join(", ")]]:[] ),
 
-...(form.description?[["NOTERING",form.description]]:[]),
-].filter(([,v])=>v&&v!=="–");
-return (
-<div style={{minHeight:"100vh",background:C.bg,fontFamily:F.B,color:C.text}}>
-<Glb/><Fnt/>
-{/* ══ HEADER ══ */}
-<header style={{borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:40,background:"rgba(14,14,14,0.97)",backdropFilter:"blur(8px)"}}>
-<div style={{height:3,background:`linear-gradient(90deg,#FF4500,#FF6B35,transparent)`}}/>
-<div style={{maxWidth:900,margin:"0 auto",padding:"0 20px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-<div style={{display:"flex",alignItems:"center",gap:12}}>
-<div style={{width:34,height:34,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-</div>
-<div>
-<p style={{fontFamily:F.T,fontSize:17,color:C.text,letterSpacing:"1.5px",lineHeight:1}}>{WS.name}</p>
-<p style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1px",marginTop:1}}>{WS.sub.toUpperCase()}</p>
-</div>
-</div>
-<div style={{display:"flex",alignItems:"center",gap:10}}>
-<div style={{display:"flex",alignItems:"center",gap:6,background:C.panel,border:`1px solid ${C.border}`,padding:"5px 10px"}}>
-<span style={{width:6,height:6,borderRadius:"50%",background:C.green,animation:"blink 2s ease infinite"}}/>
-<span style={{fontFamily:F.M,fontSize:11,color:C.green,letterSpacing:"0.5px"}}>{clock}</span>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted,marginLeft:4,letterSpacing:"1px"}}>ÖPPET</span>
-</div>
-<a href={`tel:${WS.phonePlain}`} className="nav-a" style={{fontFamily:F.M,color:C.muted,fontSize:11,textDecoration:"none",letterSpacing:"0.5px",transition:"color 0.15s"}}>{WS.phone}</a>
-<button onClick={()=>setView("admin")} className="ghost" style={{...Btn.ghost,fontSize:9,padding:"5px 10px",letterSpacing:"1.5px"}}>ADMIN</button>
-</div>
-</div>
-<div style={{height:2,background:"rgba(255,255,255,0.05)"}}>
-<div style={{height:"100%",background:C.accent,width:`${pct}%`,transition:"width 0.5s cubic-bezier(0.22,1,0.36,1)",boxShadow:`0 0 10px ${C.accentGlow}`}}/>
-</div>
-</header>
-{/* ══ WORKSHOP HERO ══ */}
-<div className="grid-bg" style={{borderBottom:`1px solid ${C.border}`,position:"relative",overflow:"hidden"}}>
-<div className="hazard" style={{position:"absolute",top:0,right:0,width:100,height:"100%",opacity:0.15,pointerEvents:"none"}}/>
-<div style={{maxWidth:900,margin:"0 auto",padding:"30px 20px 26px"}}>
-<div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:20,alignItems:"stretch"}}>
-<div>
-<div style={{display:"inline-flex",alignItems:"center",gap:8,marginBottom:12,background:C.accentDim,border:`1px solid rgba(255,69,0,0.22)`,padding:"5px 12px"}}>
-<span style={{width:5,height:5,borderRadius:"50%",background:C.accent,animation:"blink 1.5s ease infinite"}}/>
-<span style={{fontFamily:F.M,fontSize:9,color:C.accent,letterSpacing:"2px"}}>ONLINEBOKNING ÖPPEN</span>
-</div>
-<h2 style={{fontFamily:F.T,fontSize:"clamp(48px,8vw,80px)",lineHeight:0.9,letterSpacing:"0px",marginBottom:12}}>
-BOKA DIN<br/>
-
-<span style={{WebkitTextStroke:`2px ${C.accent}`,WebkitTextFillColor:"transparent",textShadow:`0 0 40px ${C.accentGlow}`}}>BILSERVICE</span>
-</h2>
-<p style={{color:C.sub,fontSize:14,lineHeight:1.7,maxWidth:360,marginBottom:14}}>Fyll i formuläret — vi bekräftar din tid personligen via telefon.</p>
-<div style={{display:"flex",flexWrap:"wrap",gap:"6px 20px"}}>
-{[`GRUNDAD ${WS.since}`,"AUKTORISERAD VERKSTAD","GRATIS KALKYL"].map(t=>(
-<span key={t} style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1.5px",display:"flex",alignItems:"center",gap:6}}><span style={{width:2,height:10,background:C.accent}}/>{t}</span>
-))}
-</div>
-</div>
-{/* Contact card */}
-<div style={{border:`1px solid ${C.border}`,minWidth:188,flexShrink:0,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-<div style={{background:C.accent,padding:"8px 14px"}}><span style={{fontFamily:F.T,fontSize:13,color:"#000",letterSpacing:"1px"}}>KONTAKTA OSS</span></div>
-<div style={{background:C.panel,padding:"14px",display:"flex",flexDirection:"column",gap:10,flex:1}}>
-{[{l:"TEL",v:WS.phone,h:`tel:${WS.phonePlain}`,accent:true},{l:"EPOST",v:WS.email,h:`mailto:${WS.email}`,accent:false},{l:"ÖPPET",v:WS.hours,h:null,accent:false}].map(({l,v,h,accent})=>(
-<div key={l} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-<span style={{fontFamily:F.M,fontSize:7,color:C.muted,letterSpacing:"1px",minWidth:36,paddingTop:1}}>{l}</span>
-{h?<a href={h} className="nav-a" style={{color:accent?C.accent:C.sub,fontSize:accent?12:11,textDecoration:"none",transition:"color 0.15s",lineHeight:1.4,wordBreak:"break-all",fontFamily:accent?F.M:F.B}}>{v}</a>
-:<span style={{color:C.sub,fontSize:11,lineHeight:1.4}}>{v}</span>}
-</div>
-))}
-<div style={{marginTop:"auto",paddingTop:8,borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:6}}>
-<span style={{width:6,height:6,borderRadius:"50%",background:C.green,animation:"blink 2s ease infinite"}}/>
-<span style={{fontFamily:F.M,fontSize:8,color:C.green,letterSpacing:"1.5px"}}>ÖPPET IDAG</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-{/* ══ MAIN ══ */}
-<main style={{maxWidth:900,margin:"0 auto",padding:"24px 20px 80px",display:"grid",gridTemplateColumns:"1fr 210px",gap:20,alignItems:"start"}}>
-{/* Form column */}
-<div>
-{/* Step tabs */}
-<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",border:`1px solid ${C.border}`,borderBottom:"none"}}>
-{STEPS.map((st,i)=>{
-const done=step>st.n; const cur=step===st.n;
-return (
-<div key={st.n} className="stab"
-style={{padding:"10px 6px",textAlign:"center",borderRight:i<4?`1px solid ${C.border}`:"none",background:cur?"#1E1E1E":done?"#161616":C.bg1,borderBottom:cur?`2px solid ${C.accent}`:"2px solid transparent",transition:"all 0.2s"}}>
-<p style={{fontFamily:F.M,fontSize:7,color:done?C.green:cur?C.accent:C.muted,letterSpacing:"1.5px",marginBottom:4}}>{String(st.n).padStart(2,"0")}</p>
-{done
-?<div style={{display:"flex",justifyContent:"center"}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-:<p style={{fontFamily:F.BC,fontWeight:700,fontSize:9,letterSpacing:"0.5px",color:cur?C.text:C.muted,lineHeight:1.2}}>{st.lbl}</p>}
-</div>
-
-);
-})}
-</div>
-{/* Step content */}
-<div key={step} className={dir==="up"?"enter":"back"}>
-{/* STEP 1 */}
-{step===1&&(
-<WCard title="KUNDINFORMATION" sub="FYLL I DINA KONTAKTUPPGIFTER" stepNum={1}>
-<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
-<div style={{gridColumn:"1/-1"}}><WField label="FULLSTÄNDIGT NAMN" ph="Förnamn Efternamn" type="text" value={form.name} err={errors.name} onChange={v=>set("name",v)}/></div>
-<WField label="TELEFON" ph="070-XXX XX XX" type="tel" value={form.phone} err={errors.phone} onChange={v=>set("phone",v)}/>
-<WField label="E-POST" ph="din@email.se" type="email" value={form.email} err={errors.email} onChange={v=>set("email",v)}/>
-</div>
-<div>
-<label style={{...Lbl,display:"block",marginBottom:8}}>REGISTRERINGSNUMMER <span style={{fontFamily:F.B,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:10,color:C.muted}}>— valfritt</span></label>
-<input type="text" placeholder="ABC 123" value={form.regno} maxLength={8} className="reg-plate" onChange={e=>set("regno",e.target.value.toUpperCase())}/>
-<p style={{fontFamily:F.M,fontSize:8,color:C.muted,marginTop:5,letterSpacing:"0.5px"}}>HJÄLPER OSS FÖRBEREDA SERVICE INFÖR DITT BESÖK</p>
-</div>
-<NavRow step={step} onNext={next}/>
-</WCard>
-)}
-{/* STEP 2 */}
-{step===2&&(
-<WCard title="SERVICETYP" sub="VÄLJ TYP AV TJÄNST OCH TID" stepNum={2}>
-{errors.jobType&&<Err msg={errors.jobType}/>}
-<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-{[{v:"enkla",badge:"DROP-IN",label:"SNABBSERVICE",desc:"Enkla åtgärder utan tidsbokning"},{v:"stora",badge:"TIDSBOKNING",label:"STÖRRE JOBB",desc:"Motor, diagnos, broms, el"}].map(svc=>{
-const active=form.jobType===svc.v;
-return (
-<button key={svc.v} onClick={()=>set("jobType",svc.v)} className="svc"
-style={{background:active?"#1E1E1E":C.bg2,border:`2px solid ${active?C.accent:C.border}`,padding:"18px 16px",cursor:"pointer",textAlign:"left",transition:"all 0.2s ease",position:"relative",boxShadow:active?`inset 0 0 0 1px rgba(255,69,0,0.2),0 0 30px ${C.accentGlow}`:"none"}}>
-{active&&<div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:C.accent}}/>}
-<p style={{fontFamily:F.M,fontSize:8,color:active?C.accent:C.muted,letterSpacing:"1.5px",marginBottom:8}}>{svc.badge}</p>
-<p style={{fontFamily:F.T,fontSize:20,color:active?C.text:C.sub,letterSpacing:"1px",marginBottom:5,lineHeight:1}}>{svc.label}</p>
-<p style={{fontFamily:F.M,fontSize:9,color:C.muted,lineHeight:1.5,letterSpacing:"0.3px"}}>{svc.desc}</p>
-{active&&<div style={{position:"absolute",top:10,right:10,width:18,height:18,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center"}}>
-<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-</div>}
-</button>
-);
-})}
-</div>
-{form.jobType==="enkla"&&(
-
-<div style={{background:C.amberDim,borderLeft:`3px solid ${C.amber}`,padding:"12px 16px",marginBottom:4}}>
-<p style={{fontFamily:F.M,fontSize:8,color:C.amber,letterSpacing:"1.5px",marginBottom:4}}>INFO: DROP-IN TILLGÄNGLIGT</p>
-<p style={{color:C.sub,fontSize:13,lineHeight:1.6}}>Ingen tidsbokning krävs. Kör in direkt under öppettider.</p>
-</div>
-)}
-{form.jobType==="stora"&&(
-<div style={{borderTop:`1px solid ${C.border}`,paddingTop:18}}>
-<WField label="DATUM — MÅNDAG TILL FREDAG" type="date" ph="" min={tod()} value={form.date} err={errors.date}
-onChange={v=>{ set("date",v); set("time",""); if(isWe(v))setErrors(e=>({...e,date:"Välj en vardag (mån–fre)"})); else setErrors(e=>({...e,date:undefined})) }}/>
-{form.date&&!isWe(form.date)&&!errors.date&&(
-<div style={{marginTop:12,marginBottom:4}}>
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1.5px"}}>KAPACITET</span>
-<span style={{fontFamily:F.M,fontSize:10,color:count>=MAX?C.red:avail.length<=1?C.amber:C.green,letterSpacing:"1px"}}>{avail.length} / {SLOTS.length} LEDIGA</span>
-</div>
-<div style={{display:"flex",gap:3}}>
-{SLOTS.map((_,i)=>(
-<div key={i} style={{flex:1,height:5,background:i<count?(count>=MAX?C.red:count>=4?C.amber:C.accent):"rgba(255,255,255,0.06)",transition:"background 0.3s"}}/>
-))}
-</div>
-</div>
-)}
-{form.date&&!isWe(form.date)&&!isFull&&(
-<div style={{marginTop:16}}>
-<label style={{...Lbl,display:"block",marginBottom:10}}>VÄLJ TID</label>
-{errors.time&&<Err msg={errors.time}/>}
-<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-{SLOTS.map(sl=>{
-const taken=booked.includes(sl); const active=form.time===sl;
-return (
-<button key={sl} disabled={taken} className={!taken?"slot":""}
-onClick={()=>!taken&&set("time",sl)}
-style={{padding:"14px 8px",border:`1px solid ${active?C.accent:taken?"rgba(255,255,255,0.04)":C.border}`,background:active?"#1E1E1E":taken?"rgba(255,255,255,0.01)":"transparent",color:taken?"#222":active?C.accent:C.sub,cursor:taken?"default":"pointer",opacity:taken?0.35:1,fontFamily:F.M,fontSize:16,letterSpacing:"2px",transition:"all 0.15s",position:"relative",boxShadow:active?`inset 0 0 0 1px ${C.accent},0 0 20px ${C.accentGlow}`:"none"}}>
-{sl}
-<span style={{display:"block",fontSize:7,marginTop:4,letterSpacing:"1.5px",color:taken?"#222":active?C.accent:C.muted}}>{taken?"BOKAD":"LEDIG"}</span>
-{active&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:C.accent}}/>}
-</button>
-);
-})}
-</div>
-</div>
-)}
-{isFull&&(
-
-<div style={{background:C.redDim,borderLeft:`3px solid ${C.red}`,padding:"12px 16px",marginTop:14}}>
-<p style={{fontFamily:F.M,fontSize:8,color:C.red,letterSpacing:"1.5px",marginBottom:3}}>VARNING: FULLBOKAT</p>
-<p style={{color:C.sub,fontSize:13}}>Välj ett annat datum för att fortsätta.</p>
-</div>
-)}
-</div>
-)}
-<NavRow step={step} onNext={next} onBack={()=>go(1)}/>
-</WCard>
-)}
-{/* STEP 3 */}
-{step===3&&(
-<WCard title="FELANMÄLAN" sub="BESKRIV FELET SÅ DETALJERAT SOM MÖJLIGT" stepNum={3}>
-<div style={{marginBottom:18}}>
-<label style={{...Lbl,display:"block",marginBottom:10}}>FELKOD / KATEGORI</label>
-<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-{TAGS.map(t=>{
-const sel=form.tags.includes(t);
-return (
-<button key={t} onClick={()=>toggleTag(t)} className="tag"
-style={{padding:"7px 12px",cursor:"pointer",fontFamily:F.M,fontSize:9,letterSpacing:"0.5px",border:`1px solid ${sel?C.accent:C.border}`,background:sel?"#1E1E1E":"transparent",color:sel?C.accent:C.sub,transition:"all 0.15s",position:"relative"}}>
-{sel&&<span style={{position:"absolute",left:0,top:0,bottom:0,width:2,background:C.accent}}/>}
-{t.toUpperCase()}
-</button>
-);
-})}
-</div>
-</div>
-<div>
-<label style={{...Lbl,display:"block",marginBottom:8}}>FELBESKRIVNING <span style={{fontFamily:F.B,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:11,color:C.muted}}>— valfritt</span></label>
-<textarea value={form.description} rows={6} onChange={e=>set("description",e.target.value)} className="field"
-placeholder="Beskriv felet — symptom, när det uppstår, hur länge det har pågått..."
-style={{...Inp.base,resize:"vertical",height:"auto",padding:"13px 16px",lineHeight:"2.1",fontSize:13,backgroundImage:"repeating-linear-gradient(transparent,transparent 29px,rgba(255,255,255,0.035) 29px,rgba(255,255,255,0.035) 30px)"}}/>
-</div>
-<NavRow step={step} onNext={next} onBack={()=>go(2)}/>
-</WCard>
-)}
-{/* STEP 4 */}
-{step===4&&(
-<WCard title="DOKUMENTATION" sub="BIFOGA FOTO PÅ FELET — VALFRITT" stepNum={4}>
-<label style={{cursor:"pointer",display:"block"}}>
-<input type="file" accept="image/*" style={{display:"none"}} onChange={handleImg}/>
-{prev
-?<div style={{position:"relative",border:`1px solid ${C.border}`,overflow:"hidden"}}>
-<img src={prev} alt="" style={{width:"100%",maxHeight:280,objectFit:"cover",display:"block"}}/>
-
-<div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.65),transparent)",display:"flex",alignItems:"flex-end",padding:"14px 16px"}}>
-<span style={{fontFamily:F.M,fontSize:9,color:C.sub,letterSpacing:"1px"}}>KLICKA FÖR ATT BYTA BILD</span>
-</div>
-</div>
-:<div className="upload" style={{border:`1.5px dashed ${C.border}`,padding:"52px 20px",textAlign:"center",background:C.bg2,transition:"all 0.2s"}}>
-<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" style={{margin:"0 auto 14px",display:"block"}}>
-<polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
-<path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-</svg>
-<p style={{fontFamily:F.M,fontSize:10,color:C.sub,letterSpacing:"1px",marginBottom:6}}>KLICKA FÖR ATT LADDA UPP FOTO</p>
-<p style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"0.5px"}}>JPG · PNG · HEIC — MAX 10 MB</p>
-</div>}
-</label>
-<NavRow step={step} onNext={next} onBack={()=>go(3)} nextLabel="TILL BEKRÄFTELSE"/>
-</WCard>
-)}
-{/* STEP 5 */}
-{step===5&&(
-<WCard title="BEKRÄFTELSE" sub="GRANSKA ARBETSORDER INNAN DU SKICKAR" stepNum={5}>
-<div style={{border:`1px solid ${C.border}`,background:C.bg2,marginBottom:18}}>
-<div style={{background:C.bg1,borderBottom:`1px solid ${C.border}`,padding:"8px 14px",display:"flex",justifyContent:"space-between"}}>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1.5px"}}>ARBETSORDER — FÖRHANDSGRANSKNING</span>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted}}>{new Date().toLocaleDateString("sv-SE")}</span>
-</div>
-{summaryRows.map(([l,v],i,a)=>(
-<div key={l} style={{display:"flex",padding:"10px 14px",borderBottom:i<a.length-1?`1px solid rgba(255,255,255,0.04)`:"none",gap:16,background:i%2===0?"transparent":"rgba(255,255,255,0.012)"}}>
-<span style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1.5px",minWidth:70,flexShrink:0,paddingTop:2}}>{l}</span>
-<span style={{fontFamily:F.BC,fontWeight:600,fontSize:14,color:C.sub,lineHeight:1.5,wordBreak:"break-word"}}>{v}</span>
-</div>
-))}
-</div>
-<p style={{fontFamily:F.M,fontSize:9,color:C.muted,lineHeight:1.7,marginBottom:18,letterSpacing:"0.3px"}}>BEKRÄFTELSE SKICKAS VIA TELEFON TILL: <span style={{color:C.sub}}>{form.phone}</span></p>
-<button className="primary" disabled={sub} onClick={submit}
-style={{...Btn.primary,width:"100%",padding:"17px",fontSize:17,letterSpacing:"3px",opacity:sub?0.8:1,transition:"all 0.2s",boxShadow:sub?"none":`0 8px 40px ${C.accentGlow}`}}>
-{sub?<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><span style={{width:16,height:16,border:"2px solid rgba(0,0,0,0.3)",borderTopColor:"#000",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>SKICKAR...</span>:"BEKRÄFTA BOKNING"}
-</button>
-<button onClick={()=>go(4)} className="ghost" style={{...Btn.ghost,width:"100%",marginTop:8,padding:"12px",fontSize:10,letterSpacing:"2px",textAlign:"center"}}>GÅ TILLBAKA</button>
-</WCard>
-)}
-</div>
-</div>
-{/* Sidebar */}
-<div style={{display:"flex",flexDirection:"column",gap:10,position:"sticky",top:72}}>
-<div style={{border:`1px solid ${C.border}`,overflow:"hidden"}}>
-<div style={{height:2,background:`linear-gradient(90deg,${C.accent},transparent)`}}/>
-
-<div style={{background:C.panel,padding:"12px 14px"}}>
-<p style={{fontFamily:F.M,fontSize:7,color:C.muted,letterSpacing:"1.5px",marginBottom:10}}>VERKSTADSINFO</p>
-{[{l:"TEL",v:WS.phone,h:`tel:${WS.phonePlain}`,c:C.accent,f:F.M},{l:"EPOST",v:WS.email,h:`mailto:${WS.email}`,c:C.sub,f:F.B},{l:"ÖPPET",v:WS.hours,h:null,c:C.sub,f:F.B}].map(({l,v,h,c,f})=>(
-<div key={l} style={{display:"flex",gap:8,marginBottom:9,alignItems:"flex-start"}}>
-<span style={{fontFamily:F.M,fontSize:7,color:C.muted,letterSpacing:"1px",minWidth:36,paddingTop:1}}>{l}</span>
-{h?<a href={h} className="nav-a" style={{color:c,fontSize:11,textDecoration:"none",lineHeight:1.4,wordBreak:"break-all",transition:"color 0.15s",fontFamily:f}}>{v}</a>
-:<span style={{color:c,fontSize:11,lineHeight:1.4,fontFamily:f}}>{v}</span>}
-</div>
-))}
-</div>
-</div>
-<div style={{border:`1px solid ${C.border}`,background:C.panel,padding:"12px 14px"}}>
-<p style={{fontFamily:F.M,fontSize:7,color:C.muted,letterSpacing:"1.5px",marginBottom:10}}>TJÄNSTER</p>
-{SVCS_LIST.map(s=>(
-<div key={s} style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
-<span style={{width:2,height:2,background:C.accent,flexShrink:0}}/>
-<span style={{fontFamily:F.M,fontSize:9,color:C.muted,letterSpacing:"0.3px"}}>{s.toUpperCase()}</span>
-</div>
-))}
-</div>
-<div style={{border:`1px solid rgba(10,158,78,0.2)`,background:C.greenDim,padding:"10px 14px",display:"flex",alignItems:"center",gap:8}}>
-<span style={{width:8,height:8,borderRadius:"50%",background:C.green,flexShrink:0,animation:"blink 2s ease infinite"}}/>
-<div><p style={{fontFamily:F.M,fontSize:9,color:C.green,letterSpacing:"1.5px",lineHeight:1}}>ÖPPET IDAG</p><p style={{fontFamily:F.M,fontSize:7,color:C.muted,marginTop:3,letterSpacing:"1px"}}>08:00 – 17:00</p></div>
-</div>
-<div className="hazard-amber" style={{padding:"2px"}}>
-<div style={{background:C.panel,padding:"9px 12px"}}>
-<p style={{fontFamily:F.M,fontSize:8,color:C.amber,letterSpacing:"1px",lineHeight:1.6}}>BOKA SENAST DAGEN INNAN FÖR GARANTERAD TID</p>
-</div>
-</div>
-</div>
-</main>
-<div className="hazard" style={{height:4}}/>
-<footer style={{background:C.bg1,borderTop:`1px solid ${C.border}`,padding:"14px 20px",textAlign:"center"}}>
-<p style={{fontFamily:F.M,fontSize:8,color:C.muted,letterSpacing:"1.5px"}}>{WS.name} · {WS.phone} · {WS.email} · GRUNDAD {WS.since}</p>
-</footer>
-{confirmed&&<Success booking={confirmed} onClose={reset}/>}
-</div>
-);
+function CardHead({num,title,sub}) {
+  return (
+    <div style={{marginBottom:22}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+        <Mono s="9" col={C.red}>{num}</Mono>
+        <div style={{flex:1,height:1,background:C.bd}}/>
+      </div>
+      <h2 style={{fontFamily:F.display,fontWeight:900,fontSize:"clamp(22px,5vw,30px)",color:C.white,textTransform:"uppercase",letterSpacing:"1px",lineHeight:1,marginBottom:6}}>{title}</h2>
+      <p style={{color:C.g2,fontSize:13,lineHeight:1.55}}>{sub}</p>
+    </div>
+  );
 }
+
+function CardNav({onNext,onBack,nextLabel="Nästa steg"}) {
+  return (
+    <div style={{display:"flex",gap:8,marginTop:24,paddingTop:18,borderTop:`1px solid ${C.bd}`}}>
+      {onBack&&<GhostBtn onClick={onBack} style={{minWidth:100}}>Tillbaka</GhostBtn>}
+      <RedBtn full onClick={onNext} style={{flex:1}}>{nextLabel}</RedBtn>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   STYLE BASES
+══════════════════════════════════════════ */
+const ghostBase = {
+  background:"transparent",border:`1px solid ${C.bd}`,borderRadius:6,
+  padding:"9px 14px",color:C.g1,fontSize:13,fontWeight:500,
+  cursor:"pointer",fontFamily:F.body,transition:"all .18s",display:"inline-block",textAlign:"center",
+};
