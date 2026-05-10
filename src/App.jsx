@@ -1,440 +1,1000 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
+import {
+  Wrench, Calendar, Clock, Phone, Mail, Car, ChevronRight, ChevronLeft,
+  Menu, X, Sun, Moon, Upload, CheckCircle, Search, User, Edit, Eye,
+  BarChart2, LogOut, ArrowRight, Shield, Star, Zap, Activity, Package,
+  AlertTriangle, FileText, Trash2, Bell, Settings, Camera, RefreshCw,
+  AlertCircle, MapPin, Check, Filter, Plus, ChevronDown
+} from "lucide-react";
 
-/* ══════════════════════════════════════════
-   GLOBAL CSS
-══════════════════════════════════════════ */
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const PHONE_RAW  = "0790574975";
+const PHONE_DISP = "079-057 49 75";
+const MAX_MAJOR  = 5;
+const MAX_SMALL  = 10;
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "Hussein2024";
 
-*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-  width: 100%;
-}
-body {
-  background: #0E0E12;
-  overflow-x: hidden;
-  width: 100%;
-  max-width: 100vw;
-}
-img, video { max-width: 100%; display: block; }
-input, textarea, button, select { max-width: 100%; }
-/* Prevent iOS zoom on input focus */
-input, textarea, select { font-size: 16px !important; }
+const TIME_SLOTS = ["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
+const WEEKDAYS   = ["Sön","Mån","Tis","Ons","Tor","Fre","Lör"];
 
-::selection { background: rgba(196,32,40,.3); color:#fff; }
-input::placeholder, textarea::placeholder { color: #2C2C38; }
-input:focus, textarea:focus { outline: none; }
-input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(.4); cursor:pointer; }
-button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer; }
-a { -webkit-tap-highlight-color: transparent; }
-
-/* ── Animations ── */
-@keyframes slideUp   { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
-@keyframes slideDown { from{opacity:0;transform:translateY(-22px)} to{opacity:1;transform:translateY(0)} }
-@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
-@keyframes popIn     { from{opacity:0;transform:scale(.94) translateY(14px)} to{opacity:1;transform:scale(1) translateY(0)} }
-@keyframes spin      { to{transform:rotate(360deg)} }
-@keyframes drawCheck { from{stroke-dashoffset:60} to{stroke-dashoffset:0} }
-@keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.35} }
-
-.step-in   { animation: slideUp   .3s cubic-bezier(.22,1,.36,1) both; }
-.step-out  { animation: slideDown .3s cubic-bezier(.22,1,.36,1) both; }
-
-/* ── Focus styles ── */
-.inp:focus {
-  border-color: rgba(196,32,40,.6) !important;
-  box-shadow: 0 0 0 3px rgba(196,32,40,.1) !important;
-}
-
-/* ── Hover (desktop only) ── */
-@media (hover:hover) {
-  .btn-red:hover    { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 14px 44px rgba(196,32,40,.35) !important; }
-  .btn-ghost:hover  { border-color:rgba(255,255,255,.22) !important; color:#fff !important; }
-  .svc-card:hover   { transform:translateY(-3px) !important; border-color:rgba(196,32,40,.5) !important; }
-  .slot-btn:not([disabled]):hover { border-color:rgba(196,32,40,.5) !important; color:#E82030 !important; background:rgba(196,32,40,.07) !important; }
-  .tag-pill:hover   { border-color:rgba(196,32,40,.45) !important; color:#E82030 !important; background:rgba(196,32,40,.07) !important; }
-  .nav-link:hover   { color:#E82030 !important; }
-  .admin-row:hover  { background:rgba(255,255,255,.025) !important; }
-}
-
-/* ── Responsive breakpoints ── */
-@media (max-width:640px) {
-  .hero-title    { font-size: clamp(48px,13vw,68px) !important; line-height:.88 !important; letter-spacing:-1px !important; }
-  .svc-grid      { grid-template-columns: 1fr !important; }
-  .slot-grid     { grid-template-columns: repeat(2,1fr) !important; }
-  .card-inner    { padding: 22px 18px 22px 22px !important; }
-  .header-inner  { padding: 0 14px !important; }
-  .hero-section  { padding: 36px 16px 0 !important; }
-  .main-wrap     { padding: 36px 14px 80px !important; }
-  .step-labels   { display: none !important; }
-  .modal-body    { padding: 20px 18px !important; }
-  .stat-grid     { grid-template-columns: 1fr 1fr !important; }
-  .hdr-wordmark  { display: none !important; }
-  .footer-inner  { flex-direction: column !important; gap: 10px !important; }
-}
-@media (min-width:641px) and (max-width:900px) {
-  .hero-title { font-size: clamp(68px,10vw,84px) !important; }
-  .slot-grid  { grid-template-columns: repeat(3,1fr) !important; }
-}
-@media (min-width:901px) {
-  .hero-title { font-size: 90px !important; }
-  .slot-grid  { grid-template-columns: repeat(3,1fr) !important; }
-}
-`;
-
-/* ══════════════════════════════════════════
-   COLOR TOKENS  —  Real Workshop Palette
-   Steel dark + Warning Red + Clean white
-══════════════════════════════════════════ */
-const C = {
-  // Backgrounds — warm dark steel
-  bg:      "#0E0E12",
-  surface: "#14141A",
-  card:    "#1A1A22",
-  cardAlt: "#20202A",
-  stripe:  "#242430",
-
-  // Borders
-  bd:      "rgba(255,255,255,.08)",
-  bdFaint: "rgba(255,255,255,.04)",
-
-  // Accent — Workshop Red (Snap-on / Bosch / Ferrari Service)
-  red:     "#C42028",
-  redL:    "#E82030",
-  redD:    "#8C1418",
-  redDim:  "rgba(196,32,40,.09)",
-  redGlow: "rgba(196,32,40,.22)",
-
-  // Text
-  white:   "#F4F2EE",
-  g1:      "#9A9AA8",
-  g2:      "#60606E",
-  g3:      "#30303C",
-
-  // Status
-  ok:      "#3A9460",
-  warn:    "#D4922A",
-  blue:    "#2E72C4",
-  err:     "#D44040",
+const STATUS_CFG = {
+  waiting:      { label:"Väntar",           bg:"bg-amber-50",  text:"text-amber-700",  border:"border-amber-200",  dot:"bg-amber-500"  },
+  confirmed:    { label:"Bekräftad",        bg:"bg-blue-50",   text:"text-blue-700",   border:"border-blue-200",   dot:"bg-blue-500"   },
+  inprogress:   { label:"Pågår",            bg:"bg-orange-50", text:"text-orange-700", border:"border-orange-200", dot:"bg-orange-500" },
+  waitingparts: { label:"Väntar på delar",  bg:"bg-purple-50", text:"text-purple-700", border:"border-purple-200", dot:"bg-purple-500" },
+  finished:     { label:"Klar",             bg:"bg-green-50",  text:"text-green-700",  border:"border-green-200",  dot:"bg-green-500"  },
+  pickedup:     { label:"Upphämtad",        bg:"bg-slate-50",  text:"text-slate-500",  border:"border-slate-200",  dot:"bg-slate-400"  },
 };
 
-const F = {
-  display: "'Barlow Condensed', sans-serif",
-  body:    "'Inter', sans-serif",
-  mono:    "'JetBrains Mono', monospace",
-};
+const MAJOR_SERVICES = ["Motorutbyte","Växellådsutbyte","Kamremsbyte","Turbobyte","Stor diagnos","Fjädringssystem","Elfelsökning","Annat större arbete"];
+const SMALL_SERVICES = ["Oljebyte / Service","Däckbyte","Bromsbelägg","Batteribyte","AC-påfyllning","Snabbdiagnos","Lamputbyte","Annat mindre arbete"];
 
-/* ══════════════════════════════════════════
-   WORKSHOP CONFIG
-══════════════════════════════════════════ */
-const WS = {
-  name:    "Kom In Bilservice",
-  short:   "KI",
-  tagline: "Auktoriserad Bilverkstad",
-  city:    "Stockholm",
-  phone:   "0790-574 975",
-  tel:     "0790574975",
-  email:   "husseinmormor@gmail.com",
-  hours:   "Mån – Fre  ·  08:00 – 17:00",
-  est:     "Est. 2010",
-};
+const SEED_BOOKINGS = [
+  { id:"BK-001", category:"major", date:"2026-05-12", time:"09:00", name:"Erik Johansson",  phone:"070-123 45 67", email:"erik.j@gmail.com",   regNumber:"ABC123", carModel:"Volvo V70 2018",       description:"Motorn startar inte. Hör ett klickande ljud vid start.", status:"confirmed",    notes:"Troligtvis startmotorn. Kontrollera batteri först.", estimatedHours:3, estimatedCompletion:"2026-05-12", createdAt:"2026-05-10T07:30:00", serviceType:"Motorproblem",       images:[] },
+  { id:"BK-002", category:"small", date:"2026-05-12", time:"10:00", name:"Ingrid Lindqvist",phone:"073-456 78 90", email:"ingrid.l@hotmail.com",regNumber:"XYZ789", carModel:"Toyota Corolla 2020",   description:"Dags för oljebyte, 15 000 km sedan sist.",             status:"waiting",      notes:"", estimatedHours:1, estimatedCompletion:"2026-05-12", createdAt:"2026-05-10T09:15:00", serviceType:"Oljebyte / Service", images:[] },
+  { id:"BK-003", category:"major", date:"2026-05-13", time:"08:00", name:"Anders Bergström",phone:"076-234 56 78", email:"anders.b@outlook.com",regNumber:"DEF456", carModel:"BMW 3-serie 2019",       description:"Kamremmen behöver bytas. Bilen har gått 180 000 km.",  status:"inprogress",   notes:"Kamremssats beställd. Klar imorgon eftermiddag.", estimatedHours:6, estimatedCompletion:"2026-05-14", createdAt:"2026-05-09T14:00:00", serviceType:"Kamremsbyte",        images:[] },
+  { id:"BK-004", category:"small", date:"2026-05-13", time:"11:00", name:"Sara Nilsson",    phone:"072-345 67 89", email:"sara.n@yahoo.com",    regNumber:"GHI012", carModel:"Volkswagen Golf 2021",   description:"Bromsbeläggen gnisslar vid inbromsning framtill.",     status:"confirmed",    notes:"", estimatedHours:2, estimatedCompletion:"2026-05-13", createdAt:"2026-05-10T10:00:00", serviceType:"Bromsbelägg",        images:[] },
+  { id:"BK-005", category:"small", date:"2026-05-14", time:"14:00", name:"Lars Persson",    phone:"070-567 89 01", email:"lars.p@gmail.com",    regNumber:"JKL345", carModel:"Skoda Octavia 2017",     description:"Behöver fylla på AC-gas inför sommaren.",              status:"waiting",      notes:"", estimatedHours:1, estimatedCompletion:"2026-05-14", createdAt:"2026-05-10T11:30:00", serviceType:"AC-påfyllning",      images:[] },
+  { id:"BK-006", category:"major", date:"2026-05-14", time:"13:00", name:"Maria Svensson",  phone:"076-789 01 23", email:"maria.s@gmail.com",   regNumber:"MNO678", carModel:"Audi A4 2020",           description:"Turbon låter konstigt vid acceleration.",              status:"waitingparts", notes:"Turboaggregat beställt från leverantör.", estimatedHours:5, estimatedCompletion:"2026-05-16", createdAt:"2026-05-09T16:00:00", serviceType:"Turbobyte",          images:[] },
+  { id:"BK-007", category:"small", date:"2026-05-11", time:"09:00", name:"Johan Karlsson",  phone:"073-321 09 87", email:"johan.k@hotmail.com", regNumber:"PQR901", carModel:"Ford Focus 2016",        description:"Vill byta till sommardäck.",                           status:"finished",     notes:"Klart! Mönsterdjup 6mm. Vinterdäck förvaras.", estimatedHours:1, estimatedCompletion:"2026-05-11", createdAt:"2026-05-08T10:00:00", serviceType:"Däckbyte",           images:[] },
+];
 
-const SLOTS  = ["08:00","09:30","11:00","12:30","14:00","15:30"];
-const MAX    = 5;
-const ADM_PW = "admin2024";
-const TAGS   = ["Konstigt ljud","Motorproblem","Vibration","Startar ej","Motorlampa","Oljebyte","Bromsservice","Däckbyte"];
-const STEPS  = [{n:1,l:"Kontakt"},{n:2,l:"Tjänst"},{n:3,l:"Ärende"},{n:4,l:"Bekräfta"}];
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+const genId = () => "BK-" + Math.random().toString(36).slice(2,8).toUpperCase();
 
-/* ══════════════════════════════════════════
-   STORAGE & UTILS
-══════════════════════════════════════════ */
-const KEY      = "ki_v2";
-const getAll   = ()  => { try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]} };
-const saveAll  = a   => localStorage.setItem(KEY, JSON.stringify(a));
-const storaOn  = d   => getAll().filter(b=>b.date===d&&b.jobType==="stora").length;
-const slotsOn  = d   => getAll().filter(b=>b.date===d).map(b=>b.time);
-const isWknd   = d   => { if(!d)return false; const w=new Date(d+"T12:00:00").getDay(); return w===0||w===6; };
-const isPast   = d   => { if(!d)return false; const t=new Date(); t.setHours(0,0,0,0); return new Date(d+"T00:00:00")<t; };
-const todayStr = ()  => new Date().toISOString().split("T")[0];
-const fmtLong  = d   => !d?"–":new Date(d+"T12:00:00").toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-const fmtShort = d   => !d?"–":new Date(d+"T12:00:00").toLocaleDateString("sv-SE",{day:"numeric",month:"short",year:"numeric"});
-const cap      = s   => s?s[0].toUpperCase()+s.slice(1):s;
-const orderNo  = id  => "KI-"+String(id).slice(-5).toUpperCase();
-
-function sendMail(b) {
-  const sub  = encodeURIComponent(`Ny bokning – ${b.name} – ${fmtShort(b.date)}`);
-  const body = encodeURIComponent(
-`ARBETSORDER  ${orderNo(b.id)}
-${WS.name.toUpperCase()}  ·  ${WS.city}
-${"═".repeat(36)}
-
-KUND:       ${b.name}
-TELEFON:    ${b.phone}
-E-POST:     ${b.email}
-
-TJÄNST:     ${b.jobType==="enkla"?"Snabbservice (drop-in)":"Större jobb – tidsbokning"}
-DATUM:      ${b.jobType==="enkla"?"Drop-in (inget datum)":fmtLong(b.date)}
-TID:        ${b.time}
-
-BESKRIVNING:
-${b.description||"(ingen angiven)"}
-
-${"═".repeat(36)}
-Bokning-ID:  ${b.id}
-Inkommen:    ${new Date(b.createdAt).toLocaleString("sv-SE")}
-`);
-  window.open(`mailto:${WS.email}?subject=${sub}&body=${body}`,"_blank");
+function fmtDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("sv-SE", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+}
+function fmtDateShort(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("sv-SE", { day:"numeric", month:"short" });
+}
+function fmtTime() {
+  return new Date().toLocaleTimeString("sv-SE", { hour:"2-digit", minute:"2-digit" });
 }
 
-/* ══════════════════════════════════════════
-   ATOMS
-══════════════════════════════════════════ */
-const GS   = () => <style dangerouslySetInnerHTML={{__html:CSS}}/>;
-const Mono = ({s="10",col,children,style={},...r}) =>
-  <span style={{fontFamily:F.mono,fontSize:s,letterSpacing:"1.5px",color:col||C.g2,...style}}>{children}</span>;
-const Cap  = ({children}) =>
-  <p style={{fontFamily:F.mono,fontSize:"9px",fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:C.g2,marginBottom:8}}>{children}</p>;
-const Rule = ({my=20,col}) =>
-  <div style={{height:1,background:col||C.bd,margin:`${my}px 0`}}/>;
-const ErrTxt = ({msg}) =>
-  <p style={{color:C.err,fontSize:13,marginTop:7,display:"flex",gap:5,alignItems:"center",fontFamily:F.body}}>
-    <span style={{fontWeight:700}}>—</span>{msg}
-  </p>;
-
-/* Logo badge */
-const KIBadge = ({size=38}) => (
-  <div style={{width:size,height:size,borderRadius:6,background:C.red,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:`0 4px 16px ${C.redGlow}`}}>
-    <span style={{fontFamily:F.display,fontSize:size*.48,fontWeight:900,color:"#fff",lineHeight:1,letterSpacing:"-1px"}}>KI</span>
-  </div>
-);
-
-/* Spinner */
-const Spin = () =>
-  <span style={{width:16,height:16,border:"2px solid rgba(255,255,255,.2)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite",display:"inline-block"}}/>;
-
-/* Buttons */
-function RedBtn({children,onClick,disabled,full,large,style={}}) {
-  const [press,setPress] = useState(false);
-  return (
-    <button className="btn-red" disabled={disabled} onClick={onClick}
-      onPointerDown={()=>setPress(true)} onPointerUp={()=>setPress(false)} onPointerLeave={()=>setPress(false)}
-      style={{background:`linear-gradient(150deg,${C.redL} 0%,${C.red} 50%,${C.redD} 100%)`,border:"none",borderRadius:6,
-        padding:large?"17px 28px":"13px 24px",width:full?"100%":"auto",color:"#fff",
-        fontFamily:F.display,fontWeight:900,fontSize:large?20:17,letterSpacing:"2px",textTransform:"uppercase",
-        transition:"all .2s ease",transform:press?"scale(.975)":"scale(1)",
-        boxShadow:press?"none":`0 6px 28px ${C.redGlow}`,opacity:disabled?.7:1,
-        display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-        minHeight:large?56:48,...style}}>
-      {disabled?<Spin/>:children}
-    </button>
-  );
-}
-
-function GhostBtn({children,onClick,full,style={}}) {
-  return (
-    <button className="btn-ghost" onClick={onClick}
-      style={{background:"transparent",border:`1px solid ${C.bd}`,borderRadius:6,
-        padding:"13px 20px",width:full?"100%":"auto",color:C.g1,fontFamily:F.body,
-        fontSize:14,fontWeight:500,transition:"all .18s",minHeight:48,...style}}>
-      {children}
-    </button>
-  );
-}
-
-/* Field */
-function Field({label,type="text",value,onChange,placeholder,error,min}) {
-  return (
-    <div style={{width:"100%"}}>
-      <Cap>{label}</Cap>
-      <input type={type} value={value} onChange={e=>onChange(e.target.value)}
-        placeholder={placeholder} min={min} className="inp"
-        style={{width:"100%",background:C.surface,border:`1.5px solid ${error?C.err+"55":C.bd}`,
-          borderRadius:8,padding:"13px 16px",color:C.white,fontFamily:F.body,
-          transition:"border-color .2s,box-shadow .2s",minHeight:50}}/>
-      {error&&<ErrTxt msg={error}/>}
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════
-   ADMIN PANEL
-══════════════════════════════════════════ */
-function Admin({onBack}) {
-  const [auth,setAuth] = useState(false);
-  const [pw,setPw]     = useState("");
-  const [pwErr,setErr] = useState(false);
-  const [busy,setBusy] = useState(false);
-  const [data,setData] = useState([]);
-  const [tab,setTab]   = useState("all");
-  const [q,setQ]       = useState("");
-
-  useEffect(()=>{ if(auth) setData(getAll()); },[auth]);
-
-  const upd = (id,s) => { const u=getAll().map(b=>b.id===id?{...b,status:s}:b); saveAll(u); setData(u); };
-  const del = id => { if(!confirm("Ta bort?"))return; const u=getAll().filter(b=>b.id!==id); saveAll(u); setData(u); };
-
-  const SC  = {Ny:C.red,Pågående:C.blue,Klar:C.ok};
-  const cnt = {all:data.length,Ny:data.filter(b=>b.status==="Ny").length,Pågående:data.filter(b=>b.status==="Pågående").length,Klar:data.filter(b=>b.status==="Klar").length};
-  const rows = data.filter(b=>tab==="all"||b.status===tab).filter(b=>!q||b.name.toLowerCase().includes(q.toLowerCase())||b.phone.includes(q)).sort((a,b)=>a.date>b.date?1:-1);
-
-  async function doLogin() {
-    setBusy(true); await new Promise(r=>setTimeout(r,500)); setBusy(false);
-    if(pw===ADM_PW) setAuth(true); else { setErr(true); setPw(""); }
+function getWorkDates(bookings, category, count = 30) {
+  const res = [], today = new Date();
+  today.setHours(0,0,0,0);
+  const max = category === "major" ? MAX_MAJOR : MAX_SMALL;
+  let checked = 0;
+  while (res.length < count && checked < 90) {
+    checked++;
+    const d = new Date(today);
+    d.setDate(today.getDate() + checked);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;
+    const ds = d.toISOString().split("T")[0];
+    const booked = bookings.filter(b => b.date === ds && b.category === category).length;
+    res.push({ date: ds, booked, max, available: booked < max, dayName: WEEKDAYS[dow], dayNum: d.getDate(), month: d.toLocaleDateString("sv-SE",{month:"short"}) });
   }
+  return res;
+}
 
-  /* Login screen */
-  if(!auth) return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:20,fontFamily:F.body,overflowX:"hidden",width:"100%"}}>
-      <GS/>
-      <div style={{width:"100%",maxWidth:380}}>
-        <button className="btn-ghost" onClick={onBack} style={{...ghostBase,fontSize:13,marginBottom:40}}>← Tillbaka</button>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
-          <KIBadge size={42}/>
-          <div>
-            <p style={{fontFamily:F.display,fontSize:22,fontWeight:900,color:C.white,letterSpacing:"1px",textTransform:"uppercase",lineHeight:1}}>{WS.name}</p>
-            <Mono s="9" col={C.g2} style={{letterSpacing:"2px"}}>ADMINPANEL</Mono>
-          </div>
-        </div>
-        <Rule my={28}/>
-        <Cap>Lösenord</Cap>
-        <input type="password" value={pw} autoFocus placeholder="••••••••••" className="inp"
-          onChange={e=>{setPw(e.target.value);setErr(false);}}
-          onKeyDown={e=>{ if(e.key==="Enter") doLogin(); }}
-          style={{width:"100%",background:C.surface,border:`1.5px solid ${pwErr?C.err+"55":C.bd}`,borderRadius:8,padding:"13px 16px",color:C.white,fontFamily:F.body,minHeight:50,marginBottom:6}}/>
-        {pwErr&&<ErrTxt msg="Fel lösenord. Försök igen."/>}
-        <RedBtn full large onClick={doLogin} disabled={busy} style={{marginTop:14}}>{busy?<Spin/>:"Logga in"}</RedBtn>
-      </div>
-    </div>
-  );
+function getSlotsForDate(bookings, date) {
+  const taken = bookings.filter(b => b.date === date).map(b => b.time);
+  return TIME_SLOTS.map(t => ({ time: t, taken: taken.includes(t) }));
+}
 
-  /* Admin dashboard */
+function loadBookings() {
+  try { const s = localStorage.getItem("komIn_v3"); return s ? JSON.parse(s) : SEED_BOOKINGS; } catch { return SEED_BOOKINGS; }
+}
+function saveBookings(bks) {
+  try { localStorage.setItem("komIn_v3", JSON.stringify(bks)); } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL STYLES
+// ═══════════════════════════════════════════════════════════════
+function GlobalStyles() {
   return (
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:F.body,color:C.white,overflowX:"hidden",width:"100%"}}>
-      <GS/>
-      {/* Topbar */}
-      <div style={{background:"rgba(14,14,18,.96)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.bd}`,height:54,display:"flex",alignItems:"center",padding:"0 20px",gap:14,position:"sticky",top:0,zIndex:50}}>
-        <button className="btn-ghost" onClick={onBack} style={{...ghostBase,fontSize:12,padding:"5px 12px",minHeight:34}}>← Bokning</button>
-        <div style={{width:1,height:14,background:C.bd}}/>
-        <Mono s="10" col={C.g2}>ADMIN — {WS.name.toUpperCase()}</Mono>
-        <div style={{marginLeft:"auto"}}>
-          <input placeholder="Sök kund…" value={q} onChange={e=>setQ(e.target.value)} className="inp"
-            style={{background:C.surface,border:`1px solid ${C.bd}`,borderRadius:6,padding:"0 12px",height:34,width:180,color:C.white,fontFamily:F.body}}/>
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'DM Sans',sans-serif;overflow-x:hidden}
+      .syne{font-family:'Syne',sans-serif!important}
+      @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+      @keyframes scaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+      @keyframes slideRight{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+      @keyframes pulse2{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.8}}
+      @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+      .afu{animation:fadeUp .65s ease both}
+      .afu1{animation:fadeUp .65s .1s ease both}
+      .afu2{animation:fadeUp .65s .2s ease both}
+      .afu3{animation:fadeUp .65s .3s ease both}
+      .afu4{animation:fadeUp .65s .4s ease both}
+      .afu5{animation:fadeUp .65s .5s ease both}
+      .afi{animation:fadeIn .4s ease both}
+      .asi{animation:scaleIn .3s ease both}
+      .hero-bg{background:linear-gradient(135deg,#0c1729 0%,#132240 45%,#0a1e36 100%)}
+      .hero-grid{background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:32px 32px}
+      .btn-cta{background:linear-gradient(135deg,#ea580c,#dc2626);transition:all .2s ease}
+      .btn-cta:hover{background:linear-gradient(135deg,#c2410c,#b91c1c);transform:translateY(-2px);box-shadow:0 12px 28px rgba(234,88,12,.4)}
+      .btn-cta:active{transform:translateY(0)}
+      .btn-outline{border:2px solid rgba(255,255,255,.25);transition:all .2s ease}
+      .btn-outline:hover{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.08)}
+      .card-hover{transition:transform .25s ease,box-shadow .25s ease}
+      .card-hover:hover{transform:translateY(-5px);box-shadow:0 24px 48px rgba(0,0,0,.12)}
+      .service-icon-wrap{transition:transform .25s ease}
+      .service-icon-wrap:hover{transform:scale(1.1)}
+      .slot-btn{transition:all .15s ease;cursor:pointer}
+      .slot-btn:hover:not(:disabled){background:#fff7ed;border-color:#ea580c;color:#ea580c}
+      .slot-btn.selected{background:#ea580c!important;border-color:#ea580c!important;color:white!important}
+      .slot-btn:disabled{opacity:.4;cursor:not-allowed}
+      .date-chip{transition:all .15s ease;cursor:pointer;flex-shrink:0}
+      .date-chip:hover:not(.unavail){border-color:#ea580c;color:#ea580c}
+      .date-chip.sel{background:#ea580c!important;border-color:#ea580c!important;color:white!important}
+      .date-chip.unavail{opacity:.4;cursor:not-allowed}
+      input:focus,textarea:focus,select:focus{outline:2px solid #ea580c;outline-offset:1px}
+      .modal-back{animation:fadeIn .2s ease both}
+      .modal-box{animation:scaleIn .25s ease both}
+      .step-bar div{transition:all .4s ease}
+      .admin-sidebar-item{transition:all .15s ease}
+      .admin-sidebar-item:hover{background:rgba(234,88,12,.08)}
+      .admin-sidebar-item.active{background:rgba(234,88,12,.12);color:#ea580c}
+      ::-webkit-scrollbar{width:5px;height:5px}
+      ::-webkit-scrollbar-track{background:transparent}
+      ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+      ::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+    `}</style>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATUS BADGE
+// ═══════════════════════════════════════════════════════════════
+function StatusBadge({ status }) {
+  const c = STATUS_CFG[status] || STATUS_CFG.waiting;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${c.bg} ${c.text} ${c.border}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`}></span>
+      {c.label}
+    </span>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVBAR
+// ═══════════════════════════════════════════════════════════════
+function Navbar({ page, setPage, darkMode, toggleDark }) {
+  const [open, setOpen] = useState(false);
+  const dk = darkMode;
+  return (
+    <nav className={`fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md transition-colors duration-300 ${dk ? "bg-gray-950/95 border-gray-800" : "bg-white/96 border-slate-100"}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 md:h-20">
+        <button onClick={() => { setPage("home"); setOpen(false); }} className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform">
+            <Wrench className="w-5 h-5 text-white" />
+          </div>
+          <div className="text-left">
+            <div className={`syne font-bold text-[15px] leading-none ${dk ? "text-white" : "text-gray-900"}`}>Kom In Bilservice</div>
+            <div className="text-[10px] text-orange-500 font-semibold tracking-widest uppercase mt-0.5">Auktoriserad verkstad</div>
+          </div>
+        </button>
+
+        {/* Desktop */}
+        <div className="hidden md:flex items-center gap-7">
+          {[["Hem","home"]].map(([l,p]) => (
+            <button key={l} onClick={() => setPage(p)} className={`text-sm font-medium transition-colors ${dk?"text-gray-400 hover:text-white":"text-gray-600 hover:text-gray-900"}`}>{l}</button>
+          ))}
+          {["Tjänster","Om oss","Kontakt"].map(l => (
+            <span key={l} className={`text-sm font-medium cursor-pointer transition-colors ${dk?"text-gray-400 hover:text-white":"text-gray-600 hover:text-gray-900"}`}>{l}</span>
+          ))}
+          <button onClick={toggleDark} className={`p-2 rounded-lg transition-all ${dk?"bg-gray-800 text-yellow-400 hover:bg-gray-700":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            {dk ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <button onClick={() => setPage("booking")} className="btn-cta text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+            Boka tid &rarr;
+          </button>
+        </div>
+
+        {/* Mobile */}
+        <div className="flex md:hidden items-center gap-2">
+          <button onClick={toggleDark} className={`p-2 rounded-lg ${dk?"bg-gray-800 text-yellow-400":"bg-gray-100 text-gray-600"}`}>
+            {dk ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <button onClick={() => setOpen(!open)} className={`p-2 rounded-lg ${dk?"bg-gray-800 text-white":"bg-gray-100 text-gray-900"}`}>
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
-
-      {/* Stats */}
-      <div className="stat-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderBottom:`1px solid ${C.bd}`}}>
-        {[{l:"ALLA",n:cnt.all,c:C.g1,k:"all"},{l:"NYA",n:cnt.Ny,c:C.red,k:"Ny"},{l:"PÅGÅENDE",n:cnt.Pågående,c:C.blue,k:"Pågående"},{l:"KLARA",n:cnt.Klar,c:C.ok,k:"Klar"}].map((x,i)=>(
-          <div key={x.k} onClick={()=>setTab(x.k)} style={{padding:"18px 20px",cursor:"pointer",borderRight:i<3?`1px solid ${C.bd}`:"none",background:tab===x.k?`${x.c}0C`:"transparent",transition:"background .2s"}}>
-            <Mono s="9" col={C.g3} style={{display:"block",marginBottom:8}}>{x.l}</Mono>
-            <p style={{fontFamily:F.display,fontSize:44,fontWeight:900,color:x.c,lineHeight:1,letterSpacing:"-2px"}}>{x.n}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div style={{padding:"12px 20px",display:"flex",gap:6,borderBottom:`1px solid ${C.bd}`,flexWrap:"wrap"}}>
-        {["all","Ny","Pågående","Klar"].map(f=>(
-          <button key={f} className="btn-ghost" onClick={()=>setTab(f)}
-            style={{...ghostBase,fontSize:11,padding:"5px 13px",letterSpacing:".5px",...(tab===f?{borderColor:`${C.red}55`,color:C.red,background:C.redDim}:{})}}>
-            {f==="all"?"Alla":f}
+      {open && (
+        <div className={`md:hidden border-t px-4 py-3 space-y-1 afi ${dk?"bg-gray-950 border-gray-800":"bg-white border-slate-100"}`}>
+          {["Hem","Tjänster","Om oss","Kontakt"].map(l => (
+            <button key={l} onClick={() => setOpen(false)} className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium ${dk?"text-gray-300 hover:bg-gray-800":"text-gray-700 hover:bg-gray-50"}`}>{l}</button>
+          ))}
+          <button onClick={() => { setPage("booking"); setOpen(false); }} className="w-full btn-cta text-white text-sm font-semibold py-3 rounded-xl mt-2">
+            Boka tid nu &rarr;
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+    </nav>
+  );
+}
 
-      {/* Cards */}
-      <div style={{padding:"12px 20px 60px",display:"flex",flexDirection:"column",gap:10}}>
-        {rows.length===0?(
-          <div style={{textAlign:"center",padding:"80px 20px"}}>
-            <p style={{fontFamily:F.display,fontSize:28,fontWeight:900,color:C.g3,letterSpacing:"3px",textTransform:"uppercase"}}>Inga bokningar</p>
+// ═══════════════════════════════════════════════════════════════
+// HOME PAGE
+// ═══════════════════════════════════════════════════════════════
+function HomePage({ setPage, darkMode }) {
+  const dk = darkMode;
+
+  const services = [
+    { icon: <Wrench className="w-6 h-6" />, title: "Motor & Drivlina", desc: "Motorutbyte, kamremsbyte, turbobyte och alla typer av motorreparationer.", tag: "Större arbete", color: "from-orange-500 to-red-600" },
+    { icon: <RefreshCw className="w-6 h-6" />, title: "Växellåda", desc: "Reparation och utbyte av automatväxellådor och manuella växellådor.", tag: "Större arbete", color: "from-red-500 to-rose-600" },
+    { icon: <Activity className="w-6 h-6" />, title: "Fjädring & Styrning", desc: "Stötdämpare, krängningshämmare, styrväxel och hjulupphängning.", tag: "Större arbete", color: "from-blue-600 to-blue-800" },
+    { icon: <Zap className="w-6 h-6" />, title: "El & Elektronik", desc: "Diagnos, lambdasond, startmotor, generator och elsystemfelsökning.", tag: "Större arbete", color: "from-indigo-500 to-blue-700" },
+    { icon: <Settings className="w-6 h-6" />, title: "Service & Oljebyte", desc: "Komplett service, oljebyte, filterbyten och förebyggande underhåll.", tag: "Snabbt arbete", color: "from-emerald-500 to-teal-600" },
+    { icon: <CheckCircle className="w-6 h-6" />, title: "Bromsar & Däck", desc: "Bromsbelägg, bromsskivor, däckbyte och säsongsbyten.", tag: "Snabbt arbete", color: "from-teal-500 to-cyan-600" },
+    { icon: <Package className="w-6 h-6" />, title: "Batteribyte & AC", desc: "Batteribyte, laddningssystemkontroll och AC-påfyllning.", tag: "Snabbt arbete", color: "from-violet-500 to-purple-700" },
+    { icon: <Search className="w-6 h-6" />, title: "Diagnos & Besiktning", desc: "Felkodsläsning, förbesiktningskontroll och teknisk rådgivning.", tag: "Snabbt arbete", color: "from-slate-600 to-gray-800" },
+  ];
+
+  const whyUs = [
+    { icon: <Shield className="w-7 h-7" />, title: "Garanterat arbete", desc: "Alla reparationer utförs med garanti. Vi står bakom varje skiftnyckel vi vrider." },
+    { icon: <Star className="w-7 h-7" />, title: "Erfarna mekaniker", desc: "Vårt team har över 20 års sammanlagd erfarenhet av alla bilmärken och modeller." },
+    { icon: <Clock className="w-7 h-7" />, title: "Transparent prissättning", desc: "Inga dolda avgifter. Du får alltid en klar offert innan arbetet påbörjas." },
+    { icon: <Phone className="w-7 h-7" />, title: "Personlig service", desc: "Hussein och teamet svarar alltid på frågor. Ring direkt för snabb hjälp." },
+  ];
+
+  const steps = [
+    { num:"01", title:"Boka online", desc:"Välj datum och tid som passar dig. Ange bilens registreringsnummer och beskriv problemet." },
+    { num:"02", title:"Vi kontaktar dig", desc:"Vi bekräftar din bokning och kan ställa eventuella följdfrågor för att förbereda jobbet." },
+    { num:"03", title:"Hämta din bil", desc:"Bilen är klar på avtalad tid. Vi ringer när allt är klart och du kan hämta den." },
+  ];
+
+  return (
+    <div className={`pt-16 md:pt-20 ${dk?"bg-gray-950":"bg-stone-50"} transition-colors duration-300`}>
+
+      {/* ── HERO ── */}
+      <section className="hero-bg hero-grid relative overflow-hidden min-h-[92vh] flex items-center">
+        {/* Decorative blobs */}
+        <div className="absolute top-[-100px] right-[-100px] w-[600px] h-[600px] bg-orange-600/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-[-60px] left-[-80px] w-[400px] h-[400px] bg-blue-800/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full">
+          <div className="max-w-3xl">
+            <div className="afu inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/25 text-orange-400 text-xs font-semibold tracking-widest uppercase mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+              Stockholm · Professionell bilservice
+            </div>
+            <h1 className="afu1 syne text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
+              Din bil i <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">trygga händer</span>
+            </h1>
+            <p className="afu2 text-lg md:text-xl text-slate-300 leading-relaxed mb-4 max-w-2xl">
+              Kom In Bilservice erbjuder professionell bilreparation med snabb service, transparent prissättning och garanterat hantverk. Boka enkelt online — vi tar hand om resten.
+            </p>
+            <p className="afu3 text-slate-400 italic mb-10 max-w-xl">
+              "Är du osäker på vad problemet är? Beskriv bara vad du hör, känner eller upplever när du kör bilen — vi hjälper dig att felsöka problemet."
+            </p>
+            <div className="afu4 flex flex-col sm:flex-row gap-4">
+              <button onClick={() => setPage("booking")} className="btn-cta text-white font-bold text-base px-8 py-4 rounded-2xl inline-flex items-center justify-center gap-2">
+                <Calendar className="w-5 h-5" /> Boka tid online
+              </button>
+              <a href={`tel:${PHONE_RAW}`} className="btn-outline text-white font-semibold text-base px-8 py-4 rounded-2xl inline-flex items-center justify-center gap-2">
+                <Phone className="w-5 h-5" /> Ring oss: {PHONE_DISP}
+              </a>
+            </div>
           </div>
-        ):rows.map(b=>(
-          <div key={b.id} className="admin-row" style={{background:C.card,border:`1px solid ${C.bd}`,borderRadius:10,overflow:"hidden",borderLeft:`3px solid ${SC[b.status]||C.red}`,transition:"background .15s"}}>
-            <div style={{padding:"16px 18px"}}>
-              {/* Header row */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,gap:8,flexWrap:"wrap"}}>
-                <div>
-                  <Mono s="9" col={C.red} style={{display:"block",marginBottom:4}}>{orderNo(b.id)}</Mono>
-                  <p style={{fontFamily:F.display,fontSize:22,fontWeight:900,color:C.white,letterSpacing:".5px"}}>{b.name}</p>
+        </div>
+
+        {/* Stats bar */}
+        <div className="absolute bottom-0 left-0 right-0 border-t border-white/8 bg-white/4 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[["15+","Års erfarenhet"],["2 500+","Nöjda kunder"],["98%","Nöjdhetsgrad"],["48h","Svarstid"]]
+              .map(([num, label]) => (
+                <div key={label} className="text-center">
+                  <div className="syne text-2xl md:text-3xl font-black text-white">{num}</div>
+                  <div className="text-xs text-slate-400 mt-0.5 font-medium">{label}</div>
                 </div>
-                <span style={{fontFamily:F.mono,fontSize:10,fontWeight:700,letterSpacing:"1.5px",color:SC[b.status],background:`${SC[b.status]}18`,padding:"5px 10px",border:`1px solid ${SC[b.status]}30`,borderRadius:4}}>{b.status?.toUpperCase()}</span>
+              ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SERVICES ── */}
+      <section id="services" className={`py-24 ${dk?"bg-gray-950":"bg-white"}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <div className={`syne text-sm font-bold tracking-widest uppercase mb-3 ${dk?"text-orange-400":"text-orange-600"}`}>Våra tjänster</div>
+            <h2 className={`syne text-4xl md:text-5xl font-extrabold ${dk?"text-white":"text-gray-900"} mb-4`}>Vad vi gör</h2>
+            <p className={`text-lg max-w-2xl mx-auto ${dk?"text-gray-400":"text-gray-600"}`}>
+              Från snabba servicearbeten till komplexa motorreparationer — vi hanterar alla typer av bilproblem med precision och omsorg.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {services.map((s, i) => (
+              <div key={i} className={`relative rounded-2xl p-6 border card-hover ${dk?"bg-gray-900 border-gray-800":"bg-white border-gray-100"} cursor-pointer group`}
+                onClick={() => setPage("booking")}>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white mb-4 service-icon-wrap`}>
+                  {s.icon}
+                </div>
+                <div className={`text-[10px] font-bold tracking-widest uppercase mb-2 ${s.tag.includes("Snabbt") ? "text-emerald-500":"text-orange-500"}`}>{s.tag}</div>
+                <h3 className={`syne font-bold text-base mb-2 ${dk?"text-white":"text-gray-900"}`}>{s.title}</h3>
+                <p className={`text-sm leading-relaxed ${dk?"text-gray-400":"text-gray-600"}`}>{s.desc}</p>
+                <div className={`mt-4 flex items-center gap-1 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity ${dk?"text-orange-400":"text-orange-600"}`}>
+                  Boka nu <ArrowRight className="w-3 h-3" />
+                </div>
               </div>
-              {/* Details */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:14}}>
-                {[["Datum",b.date||"Drop-in"],["Tid",b.time],["Telefon",b.phone],["Tjänst",b.jobType==="enkla"?"Snabbservice":"Större jobb"]].map(([l,v])=>(
-                  <div key={l}>
-                    <Mono s="8" col={C.g3} style={{display:"block",marginBottom:3}}>{l.toUpperCase()}</Mono>
-                    <p style={{color:C.g1,fontSize:13,fontWeight:500}}>{v}</p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── WHY US ── */}
+      <section id="about" className={`py-24 ${dk?"bg-gray-900":"bg-stone-50"}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className={`syne text-sm font-bold tracking-widest uppercase mb-3 ${dk?"text-orange-400":"text-orange-600"}`}>Varför välja oss</div>
+              <h2 className={`syne text-4xl md:text-5xl font-extrabold ${dk?"text-white":"text-gray-900"} mb-6 leading-tight`}>
+                Verkstaden som bryr sig om din bil — och dig
+              </h2>
+              <p className={`text-lg mb-8 leading-relaxed ${dk?"text-gray-400":"text-gray-600"}`}>
+                På Kom In Bilservice behandlar vi din bil som om den vore vår egen. Oavsett om det är en enkel service eller en komplex motorreparation — du kan räkna med oss.
+              </p>
+              <div className="space-y-5">
+                {whyUs.map((w, i) => (
+                  <div key={i} className={`flex gap-4 p-5 rounded-2xl ${dk?"bg-gray-800":"bg-white"} border ${dk?"border-gray-700":"border-gray-100"}`}>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white flex-shrink-0">
+                      {w.icon}
+                    </div>
+                    <div>
+                      <h3 className={`syne font-bold text-base mb-1 ${dk?"text-white":"text-gray-900"}`}>{w.title}</h3>
+                      <p className={`text-sm leading-relaxed ${dk?"text-gray-400":"text-gray-600"}`}>{w.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-              {b.description&&<p style={{color:C.g2,fontSize:13,lineHeight:1.6,background:C.surface,padding:"9px 12px",borderRadius:6,marginBottom:12,borderLeft:`2px solid ${C.g3}`}}>{b.description}</p>}
-              {/* Actions */}
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {["Ny","Pågående","Klar"].map(s=>(
-                  <button key={s} onClick={()=>upd(b.id,s)}
-                    style={{flex:1,minWidth:70,padding:"8px 4px",borderRadius:6,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:F.mono,letterSpacing:".8px",textTransform:"uppercase",background:b.status===s?`${SC[s]}22`:"rgba(255,255,255,.04)",color:b.status===s?SC[s]:C.g2,transition:"all .15s",minHeight:38}}>
-                    {s}
-                  </button>
+            </div>
+            {/* CTA card */}
+            <div className={`rounded-3xl overflow-hidden ${dk?"bg-gray-800":"bg-white"} border ${dk?"border-gray-700":"border-gray-100"} shadow-2xl`}>
+              <div className="hero-bg p-8">
+                <div className="syne text-white font-black text-2xl mb-2">Osäker på problemet?</div>
+                <p className="text-slate-300 text-sm">Ingen fara — du behöver inga tekniska kunskaper för att boka.</p>
+              </div>
+              <div className="p-8 space-y-5">
+                {[
+                  "Beskriv vad du hör, känner eller ser",
+                  "Vi felsöker problemet gratis över telefon",
+                  "Vi kan inspektera bilen utan bokning",
+                  "Alltid transparent offert innan vi påbörjar",
+                  "Garanterat arbete med skriftlig garanti",
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3.5 h-3.5 text-orange-600" />
+                    </div>
+                    <span className={`text-sm font-medium ${dk?"text-gray-300":"text-gray-700"}`}>{item}</span>
+                  </div>
                 ))}
-                <button className="btn-ghost" onClick={()=>del(b.id)} style={{...ghostBase,fontSize:11,padding:"8px 14px",color:C.g2,minHeight:38}}>Ta bort</button>
+                <button onClick={() => setPage("booking")} className="w-full btn-cta text-white font-bold text-base py-4 rounded-2xl mt-4">
+                  Boka gratis konsultation
+                </button>
+                <a href={`tel:${PHONE_RAW}`} className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold border-2 ${dk?"border-gray-600 text-gray-300 hover:border-orange-500":"border-gray-200 text-gray-700 hover:border-orange-500"} transition-colors`}>
+                  <Phone className="w-4 h-4 text-orange-500" /> Ring Hussein: {PHONE_DISP}
+                </a>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════
-   SUCCESS MODAL
-══════════════════════════════════════════ */
-function SuccessModal({booking,onClose}) {
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",backdropFilter:"blur(20px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16,fontFamily:F.body,animation:"fadeIn .25s ease"}} onClick={onClose}>
-      <div style={{background:C.card,width:"100%",maxWidth:460,borderRadius:12,overflow:"hidden",border:`1px solid ${C.bd}`,boxShadow:"0 60px 140px rgba(0,0,0,.8)",animation:"popIn .32s cubic-bezier(.22,1,.36,1) both"}} onClick={e=>e.stopPropagation()}>
-        {/* Red top stripe */}
-        <div style={{height:3,background:`linear-gradient(90deg,${C.redD},${C.red},${C.redL})`}}/>
-        {/* Order header */}
-        <div style={{background:C.cardAlt,borderBottom:`1px solid ${C.bd}`,padding:"14px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div>
-            <Mono s="8" col={C.g3} style={{display:"block",marginBottom:4}}>ARBETSORDER</Mono>
-            <Mono s="14" col={C.red} style={{fontWeight:700}}>{orderNo(booking.id)}</Mono>
-          </div>
-          <span style={{fontFamily:F.mono,fontSize:10,fontWeight:700,letterSpacing:"1.5px",color:C.ok,background:`${C.ok}15`,padding:"5px 10px",border:`1px solid ${C.ok}30`,borderRadius:4}}>BEKRÄFTAD</span>
         </div>
-        <div className="modal-body" style={{padding:"24px 22px 20px"}}>
-          {/* Check + title */}
-          <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:20}}>
-            <div style={{width:48,height:48,background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                <polyline points="4,11 9,16 18,5" stroke={C.red} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="60" strokeDashoffset="60" style={{animation:"drawCheck .5s .1s ease forwards"}}/>
-              </svg>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section className={`py-24 ${dk?"bg-gray-950":"bg-white"}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <div className={`syne text-sm font-bold tracking-widest uppercase mb-3 ${dk?"text-orange-400":"text-orange-600"}`}>Enkelt och smidigt</div>
+            <h2 className={`syne text-4xl md:text-5xl font-extrabold ${dk?"text-white":"text-gray-900"}`}>Hur det fungerar</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {steps.map((s, i) => (
+              <div key={i} className={`relative p-8 rounded-2xl border ${dk?"bg-gray-900 border-gray-800":"bg-stone-50 border-gray-100"}`}>
+                <div className="syne text-6xl font-black text-orange-500/20 mb-4">{s.num}</div>
+                <h3 className={`syne font-bold text-xl mb-3 ${dk?"text-white":"text-gray-900"}`}>{s.title}</h3>
+                <p className={`text-sm leading-relaxed ${dk?"text-gray-400":"text-gray-600"}`}>{s.desc}</p>
+                {i < steps.length - 1 && (
+                  <div className="hidden md:block absolute top-12 -right-4 z-10">
+                    <ArrowRight className={`w-8 h-8 ${dk?"text-gray-700":"text-gray-300"}`} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 text-center">
+            <button onClick={() => setPage("booking")} className="btn-cta text-white font-bold text-base px-10 py-4 rounded-2xl inline-flex items-center gap-2">
+              <Calendar className="w-5 h-5" /> Boka din tid nu
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── EMERGENCY ── */}
+      <section id="contact" className="py-20 bg-gradient-to-br from-red-600 via-orange-600 to-red-700 relative overflow-hidden">
+        <div className="absolute inset-0 hero-grid opacity-20 pointer-events-none" />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-6 relative">
+            <Phone className="w-8 h-8 text-white" />
+            <div className="absolute inset-0 rounded-full bg-white/20 animate-ping" />
+          </div>
+          <h2 className="syne text-4xl md:text-5xl font-extrabold text-white mb-4">Akut ärende?</h2>
+          <p className="text-xl text-red-100 mb-3">Ring Hussein direkt — vi hjälper dig omedelbart</p>
+          <p className="text-red-200 mb-8 max-w-xl mx-auto">
+            Har du ett akut fel, kör fast på vägen eller behöver omedelbar hjälp? Tveka inte att ringa — vi finns här för dig.
+          </p>
+          <a href={`tel:${PHONE_RAW}`} className="inline-flex items-center gap-3 bg-white text-red-600 font-black text-xl md:text-2xl px-10 py-5 rounded-2xl shadow-2xl hover:scale-105 transition-transform">
+            <Phone className="w-6 h-6" /> {PHONE_DISP}
+          </a>
+          <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4 text-sm text-red-200">
+            <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> Mån–Fre: 07:30–18:00</span>
+            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> Verkstadsgatan 12, Stockholm</span>
+            <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" /> kontakt@komin-bilservice.se</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className={`py-16 ${dk?"bg-gray-950 border-gray-800":"bg-gray-900 border-gray-800"} border-t`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                  <Wrench className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="syne font-bold text-white text-base">Kom In Bilservice</div>
+                  <div className="text-xs text-orange-500 font-semibold tracking-widest uppercase">Auktoriserad verkstad</div>
+                </div>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed mb-5 max-w-xs">
+                Professionell bilservice och reparation i Stockholm. Vi tar hand om din bil med omsorg, kompetens och ärlighet.
+              </p>
+              <a href={`tel:${PHONE_RAW}`} className="inline-flex items-center gap-2 text-orange-400 font-semibold text-sm hover:text-orange-300 transition-colors">
+                <Phone className="w-4 h-4" /> {PHONE_DISP}
+              </a>
             </div>
             <div>
-              <h2 style={{fontFamily:F.display,fontSize:"clamp(24px,5vw,30px)",fontWeight:900,color:C.white,letterSpacing:"1px",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>Bokning mottagen</h2>
-              <p style={{color:C.g1,fontSize:14,lineHeight:1.65}}>Vi ringer dig på <strong style={{color:C.white}}>{booking.phone}</strong> för att bekräfta.</p>
+              <div className="syne font-bold text-white text-sm mb-5 tracking-wider uppercase">Tjänster</div>
+              <ul className="space-y-3 text-gray-400 text-sm">
+                {["Motor & Drivlina","Växellåda","Bromsar & Däck","Service & Oljebyte","El & Diagnos","AC & Klimat"].map(t => (
+                  <li key={t} className="hover:text-orange-400 cursor-pointer transition-colors">{t}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="syne font-bold text-white text-sm mb-5 tracking-wider uppercase">Öppettider</div>
+              <ul className="space-y-3 text-gray-400 text-sm">
+                <li className="flex justify-between"><span>Måndag–Fredag</span><span className="text-white font-medium">07:30–18:00</span></li>
+                <li className="flex justify-between"><span>Lördag</span><span className="text-white font-medium">09:00–14:00</span></li>
+                <li className="flex justify-between"><span>Söndag</span><span className="text-gray-600">Stängt</span></li>
+              </ul>
+              <div className="mt-6 pt-6 border-t border-gray-800">
+                <div className="text-xs text-gray-500 mb-2">Admin-inloggning</div>
+                <button onClick={() => setPage("admin-login")} className="text-xs text-gray-600 hover:text-gray-400 transition-colors underline">
+                  Gå till adminpanel
+                </button>
+              </div>
             </div>
           </div>
-          {/* Details */}
-          <div style={{border:`1px solid ${C.bd}`,borderRadius:8,overflow:"hidden",marginBottom:18}}>
-            <div style={{background:C.cardAlt,padding:"7px 14px",borderBottom:`1px solid ${C.bd}`}}>
-              <Mono s="8" col={C.g3}>BOKNINGSDETALJER</Mono>
+          <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
+            <span>© 2026 Kom In Bilservice. Alla rättigheter förbehållna.</span>
+            <span>Verkstadsgatan 12, 123 45 Stockholm</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOKING PAGE
+// ═══════════════════════════════════════════════════════════════
+function BookingPage({ bookings, addBooking, setPage, darkMode }) {
+  const dk = darkMode;
+  const [step, setStep] = useState(1);
+  const [category, setCategory] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [formData, setFormData] = useState({ name:"", phone:"", email:"", regNumber:"", carModel:"", serviceType:"", description:"" });
+  const [images, setImages] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [booking, setBooking] = useState(null);
+  const dateScrollRef = useRef(null);
+
+  const workDates = category ? getWorkDates(bookings, category) : [];
+  const slots = selectedDate ? getSlotsForDate(bookings, selectedDate) : [];
+  const services = category === "major" ? MAJOR_SERVICES : SMALL_SERVICES;
+
+  const validate = () => {
+    const e = {};
+    if (!formData.name.trim()) e.name = "Namn krävs";
+    if (!formData.phone.trim()) e.phone = "Telefonnummer krävs";
+    if (!formData.regNumber.trim()) e.regNumber = "Registreringsnummer krävs";
+    if (!formData.description.trim()) e.description = "Beskriv problemet";
+    if (!formData.serviceType) e.serviceType = "Välj servicetyp";
+    return e;
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setImages(prev => [...prev, { name: file.name, url: ev.target.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSubmit = () => {
+    const e = validate();
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    setSubmitting(true);
+    setTimeout(() => {
+      const b = {
+        id: genId(), category, date: selectedDate, time: selectedTime,
+        ...formData,
+        status: "waiting", notes: "", estimatedHours: null, estimatedCompletion: null,
+        createdAt: new Date().toISOString(), images: images.map(i => i.name)
+      };
+      addBooking(b);
+      setBooking(b);
+      setStep(4);
+      setSubmitting(false);
+    }, 1200);
+  };
+
+  const stepLabels = ["Välj typ","Datum & tid","Dina uppgifter","Bekräftelse"];
+
+  const CARD = dk ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100";
+  const LBL = dk ? "text-gray-400" : "text-gray-600";
+  const HDR = dk ? "text-white" : "text-gray-900";
+  const INP = `w-full px-4 py-3 rounded-xl border text-sm transition-colors ${dk?"bg-gray-800 border-gray-700 text-white placeholder-gray-500":"bg-white border-gray-200 text-gray-900 placeholder-gray-400"}`;
+
+  return (
+    <div className={`min-h-screen pt-16 md:pt-20 pb-20 ${dk?"bg-gray-950":"bg-stone-50"}`}>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+
+        {/* Header */}
+        <div className="mb-8">
+          <button onClick={() => step > 1 ? setStep(step-1) : setPage("home")} className={`flex items-center gap-1.5 text-sm ${LBL} hover:text-orange-500 transition-colors mb-4`}>
+            <ChevronLeft className="w-4 h-4" /> {step > 1 ? "Tillbaka" : "Hem"}
+          </button>
+          <h1 className={`syne text-3xl md:text-4xl font-extrabold ${HDR} mb-2`}>Boka tid</h1>
+          <p className={`text-sm ${LBL}`}>Steg {step} av 4 — {stepLabels[step-1]}</p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="step-bar flex gap-1.5 mb-10">
+          {[1,2,3,4].map(n => (
+            <div key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? "bg-orange-500" : dk?"bg-gray-700":"bg-gray-200"}`} />
+          ))}
+        </div>
+
+        {/* ── STEP 1: Category ── */}
+        {step === 1 && (
+          <div className="asi space-y-4">
+            <h2 className={`syne text-xl font-bold ${HDR} mb-6`}>Vilken typ av tjänst behöver du?</h2>
+            {[
+              {
+                id:"major", label:"Större reparationer", badge:`Max ${MAX_MAJOR}/dag`,
+                icon:<Wrench className="w-8 h-8" />, color:"from-orange-500 to-red-600",
+                desc:"Motorbyte, kamrem, turbo, växellåda, fjädring, el-felsökning och andra komplexa arbeten.",
+                examples:["Motorutbyte","Kamremsbyte","Turbobyte","Växellådsarbete"]
+              },
+              {
+                id:"small", label:"Enklare service & reparationer", badge:`Max ${MAX_SMALL}/dag`,
+                icon:<Settings className="w-8 h-8" />, color:"from-emerald-500 to-teal-600",
+                desc:"Oljebyte, däckbyte, bromsbelägg, batteribyte, AC och snabba servicearbeten.",
+                examples:["Oljebyte","Däckbyte","Bromsbelägg","AC-påfyllning"]
+              }
+            ].map(opt => (
+              <button key={opt.id}
+                onClick={() => { setCategory(opt.id); setSelectedDate(null); setSelectedTime(null); setStep(2); }}
+                className={`w-full text-left p-6 rounded-2xl border-2 card-hover transition-all ${category === opt.id ? "border-orange-500 bg-orange-50" : dk?"border-gray-700 bg-gray-900 hover:border-orange-500/50":"border-gray-200 bg-white hover:border-orange-300"}`}>
+                <div className="flex items-start gap-5">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${opt.color} flex items-center justify-center text-white flex-shrink-0`}>
+                    {opt.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className={`syne font-bold text-lg ${HDR}`}>{opt.label}</h3>
+                      <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">{opt.badge}</span>
+                    </div>
+                    <p className={`text-sm ${LBL} mb-3 leading-relaxed`}>{opt.desc}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {opt.examples.map(ex => (
+                        <span key={ex} className={`text-xs px-2.5 py-1 rounded-full font-medium ${dk?"bg-gray-800 text-gray-400":"bg-gray-100 text-gray-600"}`}>{ex}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 mt-1 flex-shrink-0 ${dk?"text-gray-600":"text-gray-400"}`} />
+                </div>
+              </button>
+            ))}
+
+            {/* Emergency note */}
+            <div className="mt-6 p-5 rounded-2xl bg-red-50 border border-red-100">
+              <div className="flex gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="syne font-bold text-red-700 text-sm mb-1">Akut ärende?</div>
+                  <p className="text-sm text-red-600">Ring Hussein direkt på <a href={`tel:${PHONE_RAW}`} className="font-bold underline">{PHONE_DISP}</a> för omedelbar hjälp.</p>
+                </div>
+              </div>
             </div>
-            {[["Tjänst",booking.jobType==="enkla"?"Snabbservice":"Större jobb"],["Datum",booking.jobType==="enkla"?"Drop-in":fmtLong(booking.date)],["Tid",booking.time],["Kund",booking.name]].map(([l,v],i,a)=>(
-              <div key={l} style={{display:"flex",gap:12,padding:"10px 14px",borderBottom:i<a.length-1?`1px solid ${C.bdFaint}`:"none",background:i%2?"rgba(255,255,255,.012)":"transparent"}}>
-                <Mono s="8" col={C.g3} style={{minWidth:58,paddingTop:2,flexShrink:0,textTransform:"uppercase"}}>{l}</Mono>
-                <span style={{color:C.g1,fontSize:13,fontWeight:500,lineHeight:1.5}}>{cap(v)}</span>
+          </div>
+        )}
+
+        {/* ── STEP 2: Date & Time ── */}
+        {step === 2 && (
+          <div className="asi">
+            <h2 className={`syne text-xl font-bold ${HDR} mb-2`}>Välj datum och tid</h2>
+            <p className={`text-sm ${LBL} mb-6`}>{category === "major" ? "Större reparationer" : "Enklare service"} · Max {category === "major" ? MAX_MAJOR : MAX_SMALL} bokningar per dag</p>
+
+            {/* Date picker */}
+            <div className={`rounded-2xl border p-5 mb-5 ${CARD}`}>
+              <div className={`text-xs font-bold tracking-widest uppercase mb-4 ${dk?"text-gray-500":"text-gray-400"}`}>Välj datum</div>
+              <div ref={dateScrollRef} className="flex gap-3 overflow-x-auto pb-2" style={{scrollbarWidth:"none"}}>
+                {workDates.map(d => (
+                  <button key={d.date}
+                    disabled={!d.available}
+                    onClick={() => { setSelectedDate(d.date); setSelectedTime(null); }}
+                    className={`date-chip text-center min-w-[70px] py-3 px-2 rounded-xl border-2 transition-all ${selectedDate === d.date ? "sel" : !d.available ? "unavail " + (dk?"border-gray-700 text-gray-600":"border-gray-200 text-gray-400") : dk?"border-gray-700 text-gray-300":"border-gray-200 text-gray-700"}`}>
+                    <div className="text-xs font-semibold opacity-70">{d.dayName}</div>
+                    <div className="text-xl font-black leading-none mt-1">{d.dayNum}</div>
+                    <div className="text-xs mt-1">{d.month}</div>
+                    {!d.available && <div className="text-[9px] mt-1 text-red-500 font-bold">FULLBOKAD</div>}
+                    {d.available && <div className="text-[9px] mt-1 text-emerald-500 font-bold">{d.max-d.booked} kvar</div>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time picker */}
+            {selectedDate && (
+              <div className={`rounded-2xl border p-5 mb-6 ${CARD}`}>
+                <div className={`text-xs font-bold tracking-widest uppercase mb-4 ${dk?"text-gray-500":"text-gray-400"}`}>Välj tid — {fmtDate(selectedDate)}</div>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {slots.map(s => (
+                    <button key={s.time} disabled={s.taken}
+                      onClick={() => setSelectedTime(s.time)}
+                      className={`slot-btn border-2 rounded-xl py-3 text-sm font-bold transition-all ${selectedTime === s.time ? "selected" : s.taken ? dk?"bg-gray-800 border-gray-700 text-gray-600":"bg-gray-100 border-gray-200 text-gray-400" : dk?"bg-gray-800 border-gray-700 text-gray-300":"bg-white border-gray-200 text-gray-700"}`}>
+                      {s.time}
+                      {s.taken && <div className="text-[9px] font-medium opacity-60">Bokad</div>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button disabled={!selectedDate || !selectedTime}
+              onClick={() => setStep(3)}
+              className={`w-full py-4 rounded-2xl font-bold text-base transition-all ${selectedDate && selectedTime ? "btn-cta text-white" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
+              {selectedDate && selectedTime ? `Fortsätt → ${selectedTime} den ${fmtDateShort(selectedDate)}` : "Välj datum och tid för att fortsätta"}
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 3: Details ── */}
+        {step === 3 && (
+          <div className="asi">
+            <h2 className={`syne text-xl font-bold ${HDR} mb-6`}>Dina uppgifter & bilinfo</h2>
+
+            <div className={`rounded-2xl border p-5 mb-5 ${CARD}`}>
+              <div className={`text-xs font-bold tracking-widest uppercase mb-4 ${dk?"text-gray-500":"text-gray-400"}`}>Din bokning</div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className={`p-3 rounded-xl ${dk?"bg-gray-800":"bg-gray-50"}`}>
+                  <div className={`text-xs ${LBL} mb-1`}>Typ</div>
+                  <div className={`font-semibold ${HDR}`}>{category === "major" ? "Större reparation" : "Enklare service"}</div>
+                </div>
+                <div className={`p-3 rounded-xl ${dk?"bg-gray-800":"bg-gray-50"}`}>
+                  <div className={`text-xs ${LBL} mb-1`}>Tid</div>
+                  <div className={`font-semibold ${HDR}`}>{selectedTime}, {fmtDateShort(selectedDate)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`rounded-2xl border p-6 mb-5 space-y-4 ${CARD}`}>
+              <div className={`text-xs font-bold tracking-widest uppercase mb-2 ${dk?"text-gray-500":"text-gray-400"}`}>Kontaktuppgifter</div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-xs font-semibold mb-1.5 ${LBL}`}>Fullständigt namn *</label>
+                  <input className={INP} placeholder="Anna Svensson"
+                    value={formData.name} onChange={e => setFormData({...formData, name:e.target.value})} />
+                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1.5 ${LBL}`}>Telefonnummer *</label>
+                  <input className={INP} placeholder="070-123 45 67" type="tel"
+                    value={formData.phone} onChange={e => setFormData({...formData, phone:e.target.value})} />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-xs font-semibold mb-1.5 ${LBL}`}>E-postadress</label>
+                <input className={INP} placeholder="anna@exempel.se" type="email"
+                  value={formData.email} onChange={e => setFormData({...formData, email:e.target.value})} />
+              </div>
+
+              <div className={`text-xs font-bold tracking-widest uppercase pt-2 pb-1 ${dk?"text-gray-500":"text-gray-400"}`}>Biluppgifter</div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-xs font-semibold mb-1.5 ${LBL}`}>Registreringsnummer *</label>
+                  <input className={`${INP} uppercase`} placeholder="ABC 123"
+                    value={formData.regNumber} onChange={e => setFormData({...formData, regNumber:e.target.value.toUpperCase()})} />
+                  {errors.regNumber && <p className="text-red-500 text-xs mt-1">{errors.regNumber}</p>}
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1.5 ${LBL}`}>Bilmärke & modell</label>
+                  <input className={INP} placeholder="Volvo V70 2019"
+                    value={formData.carModel} onChange={e => setFormData({...formData, carModel:e.target.value})} />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-xs font-semibold mb-1.5 ${LBL}`}>Typ av service *</label>
+                <select className={INP} value={formData.serviceType} onChange={e => setFormData({...formData, serviceType:e.target.value})}>
+                  <option value="">Välj servicetyp...</option>
+                  {services.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                {errors.serviceType && <p className="text-red-500 text-xs mt-1">{errors.serviceType}</p>}
+              </div>
+
+              <div>
+                <label className={`block text-xs font-semibold mb-1.5 ${LBL}`}>Beskriv problemet *</label>
+                <textarea className={`${INP} resize-none`} rows={4}
+                  placeholder="Beskriv vad du hör, känner eller upplever med bilen. Du behöver inte ha tekniska kunskaper — beskriv bara problemet med dina egna ord."
+                  value={formData.description} onChange={e => setFormData({...formData, description:e.target.value})} />
+                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+              </div>
+
+              {/* Image upload */}
+              <div>
+                <label className={`block text-xs font-semibold mb-2 ${LBL}`}>Bifoga bilder (valfritt)</label>
+                <label className={`flex flex-col items-center justify-center gap-2 py-6 px-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${dk?"border-gray-700 hover:border-orange-500/60":"border-gray-200 hover:border-orange-400/60"}`}>
+                  <Camera className={`w-8 h-8 ${dk?"text-gray-600":"text-gray-400"}`} />
+                  <span className={`text-sm font-medium ${LBL}`}>Klicka för att ladda upp bilder</span>
+                  <span className={`text-xs ${dk?"text-gray-600":"text-gray-400"}`}>JPG, PNG, HEIC — max 10 MB</span>
+                  <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </label>
+                {images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {images.map((img, i) => (
+                      <div key={i} className="relative">
+                        <img src={img.url} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+                        <button onClick={() => setImages(images.filter((_,j) => j !== i))}
+                          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* GDPR */}
+              <p className={`text-xs ${dk?"text-gray-600":"text-gray-400"} leading-relaxed`}>
+                Dina uppgifter behandlas säkert och används enbart för att hantera din bokning, i enlighet med GDPR.
+              </p>
+            </div>
+
+            <button onClick={handleSubmit} disabled={submitting}
+              className={`w-full py-4 rounded-2xl font-bold text-base transition-all flex items-center justify-center gap-2 ${submitting ? "bg-orange-400 cursor-not-allowed" : "btn-cta"} text-white`}>
+              {submitting ? (<><RefreshCw className="w-5 h-5 animate-spin" /> Skickar bokning...</>) : (<><CheckCircle className="w-5 h-5" /> Bekräfta bokning</>)}
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 4: Success ── */}
+        {step === 4 && booking && (
+          <div className="asi text-center">
+            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10 text-green-600" />
+            </div>
+            <h2 className={`syne text-3xl font-extrabold ${HDR} mb-3`}>Bokning skickad!</h2>
+            <p className={`${LBL} mb-8 max-w-md mx-auto leading-relaxed`}>
+              Tack {booking.name.split(" ")[0]}! Din bokningsförfrågan har tagits emot. Vi kontaktar dig inom kort för bekräftelse.
+            </p>
+
+            <div className={`rounded-2xl border p-6 mb-6 text-left ${CARD}`}>
+              <div className={`text-xs font-bold tracking-widest uppercase mb-4 ${dk?"text-gray-500":"text-gray-400"}`}>Bokningsdetaljer</div>
+              <div className="space-y-3">
+                {[
+                  ["Boknings-ID", booking.id],
+                  ["Datum & tid", `${fmtDate(booking.date)} kl. ${booking.time}`],
+                  ["Tjänst", booking.serviceType],
+                  ["Fordon", booking.carModel || booking.regNumber],
+                  ["Status", "Väntar på bekräftelse"]
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between items-start gap-4">
+                    <span className={`text-sm ${LBL}`}>{k}</span>
+                    <span className={`text-sm font-semibold ${HDR} text-right`}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={`rounded-2xl p-5 mb-6 text-left ${dk?"bg-blue-950/40 border border-blue-900":"bg-blue-50 border border-blue-100"}`}>
+              <div className="flex gap-3">
+                <Bell className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="syne font-bold text-blue-700 text-sm mb-1">Vad händer härnäst?</div>
+                  <p className="text-sm text-blue-600 leading-relaxed">Vi kontaktar dig på <span className="font-bold">{booking.phone}</span> inom 2 timmar för att bekräfta din bokning. Har du akuta frågor? Ring Hussein på <a href={`tel:${PHONE_RAW}`} className="font-bold underline">{PHONE_DISP}</a>.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={() => setPage("home")} className={`flex-1 py-3.5 rounded-2xl font-semibold border-2 transition-all ${dk?"border-gray-700 text-gray-300 hover:border-orange-500":"border-gray-200 text-gray-700 hover:border-orange-400"}`}>
+                Tillbaka till startsidan
+              </button>
+              <a href={`tel:${PHONE_RAW}`} className="flex-1 btn-cta text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2">
+                <Phone className="w-4 h-4" /> Ring oss
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN LOGIN
+// ═══════════════════════════════════════════════════════════════
+function AdminLoginPage({ onLogin, setPage, darkMode }) {
+  const [user, setUser] = useState("");
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const dk = darkMode;
+
+  const handleLogin = () => {
+    if (!user || !pass) { setErr("Fyll i användarnamn och lösenord."); return; }
+    setLoading(true);
+    setTimeout(() => {
+      if (user === ADMIN_USER && pass === ADMIN_PASS) { onLogin(); }
+      else { setErr("Fel användarnamn eller lösenord."); setLoading(false); }
+    }, 800);
+  };
+
+  const INP = `w-full px-4 py-3 rounded-xl border text-sm transition-colors ${dk?"bg-gray-800 border-gray-700 text-white placeholder-gray-500":"bg-white border-gray-200 text-gray-900 placeholder-gray-400"}`;
+
+  return (
+    <div className={`min-h-screen flex items-center justify-center px-4 ${dk?"bg-gray-950":"bg-stone-100"}`}>
+      <div className={`w-full max-w-sm rounded-3xl border shadow-2xl overflow-hidden ${dk?"bg-gray-900 border-gray-800":"bg-white border-gray-100"}`}>
+        <div className="hero-bg p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center mx-auto mb-4">
+            <Wrench className="w-7 h-7 text-white" />
+          </div>
+          <div className="syne text-white font-bold text-xl">Kom In Bilservice</div>
+          <div className="text-orange-300 text-xs font-semibold tracking-widest uppercase mt-1">Admin-portal</div>
+        </div>
+        <div className="p-8 space-y-4">
+          <div>
+            <label className={`block text-xs font-semibold mb-1.5 ${dk?"text-gray-400":"text-gray-600"}`}>Användarnamn</label>
+            <input className={INP} placeholder="admin" value={user} onChange={e => setUser(e.target.value)} onKeyDown={e => e.key==="Enter" && handleLogin()} />
+          </div>
+          <div>
+            <label className={`block text-xs font-semibold mb-1.5 ${dk?"text-gray-400":"text-gray-600"}`}>Lösenord</label>
+            <input className={INP} placeholder="••••••••" type="password" value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key==="Enter" && handleLogin()} />
+          </div>
+          {err && <p className="text-red-500 text-xs flex items-center gap-1.5"><AlertCircle className="w-4 h-4" />{err}</p>}
+          <button onClick={handleLogin} disabled={loading}
+            className="w-full btn-cta text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2">
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
+            {loading ? "Loggar in..." : "Logga in"}
+          </button>
+          <button onClick={() => setPage("home")} className={`w-full text-sm text-center py-2 transition-colors ${dk?"text-gray-500 hover:text-gray-300":"text-gray-400 hover:text-gray-600"}`}>
+            ← Tillbaka till webbplatsen
+          </button>
+          <p className={`text-xs text-center ${dk?"text-gray-700":"text-gray-400"}`}>Demo: admin / Hussein2024</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOKING MODAL (Admin)
+// ═══════════════════════════════════════════════════════════════
+function BookingModal({ booking, onClose, onUpdate, darkMode }) {
+  const [b, setB] = useState({...booking});
+  const dk = darkMode;
+  const CARD = dk ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200";
+  const HDR = dk ? "text-white" : "text-gray-900";
+  const LBL = dk ? "text-gray-400" : "text-gray-500";
+  const INP = `w-full px-3 py-2.5 rounded-xl border text-sm ${dk?"bg-gray-800 border-gray-700 text-white placeholder-gray-500":"bg-white border-gray-200 text-gray-900"}`;
+
+  const save = () => { onUpdate(b); onClose(); };
+
+  return (
+    <div className="modal-back fixed inset-0 z-[100] flex items-start justify-center p-4 pt-10 pb-10 overflow-y-auto" style={{background:"rgba(0,0,0,.6)"}}>
+      <div className={`modal-box w-full max-w-2xl rounded-3xl border shadow-2xl ${dk?"bg-gray-900 border-gray-700":"bg-white border-gray-100"}`}>
+        {/* Header */}
+        <div className={`flex items-center justify-between p-6 border-b ${dk?"border-gray-800":"border-gray-100"}`}>
+          <div>
+            <div className="syne font-bold text-lg text-gray-100 dark:text-white" style={{color: dk?"white":"#111827"}}>{b.name}</div>
+            <div className={`text-sm ${LBL} mt-0.5`}>{b.id} · {b.regNumber} · {b.carModel}</div>
+          </div>
+          <button onClick={onClose} className={`p-2 rounded-xl ${dk?"bg-gray-800 text-gray-400 hover:bg-gray-700":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Status & category */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${LBL}`}>Status</label>
+              <select className={INP} value={b.status} onChange={e => setB({...b, status:e.target.value})}>
+                {Object.entries(STATUS_CFG).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${LBL}`}>Uppskattad tid (h)</label>
+              <input type="number" min="0.5" step="0.5" className={INP} value={b.estimatedHours || ""} onChange={e => setB({...b, estimatedHours: parseFloat(e.target.value)})} />
+            </div>
+          </div>
+
+          {/* Info grid */}
+          <div className={`rounded-2xl border p-4 grid grid-cols-2 gap-3 text-sm ${CARD}`}>
+            {[
+              ["Datum",  fmtDate(b.date)],
+              ["Tid",    b.time],
+              ["Telefon",b.phone],
+              ["E-post", b.email],
+              ["Tjänst", b.serviceType],
+              ["Typ",    b.category === "major" ? "Större reparation" : "Enklare service"],
+            ].map(([k,v]) => (
+              <div key={k}>
+                <div className={`text-xs ${LBL} mb-0.5`}>{k}</div>
+                <div className={`font-semibold ${HDR}`}>{v || "—"}</div>
               </div>
             ))}
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <a href={`tel:${WS.tel}`} className="btn-ghost" style={{...ghostBase,textDecoration:"none",textAlign:"center",display:"block",padding:"12px",fontSize:13}}>Ring oss</a>
-            <RedBtn onClick={onClose}>Stäng</RedBtn>
+
+          {/* Description */}
+          <div>
+            <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${LBL}`}>Kundens beskrivning</label>
+            <div className={`p-4 rounded-xl border text-sm leading-relaxed italic ${dk?"bg-gray-800 border-gray-700 text-gray-300":"bg-gray-50 border-gray-200 text-gray-700"}`}>
+              "{b.description}"
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${LBL}`}>Interna anteckningar</label>
+            <textarea className={`${INP} resize-none`} rows={3} placeholder="Lägg till interna anteckningar om jobbet..."
+              value={b.notes} onChange={e => setB({...b, notes:e.target.value})} />
+          </div>
+
+          {/* Estimated completion */}
+          <div>
+            <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${LBL}`}>Beräknat klardatum</label>
+            <input type="date" className={INP} value={b.estimatedCompletion || ""} onChange={e => setB({...b, estimatedCompletion:e.target.value})} />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <a href={`tel:${b.phone.replace(/\s|-/g,"")}`} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${dk?"border-gray-700 text-gray-300 hover:border-orange-500":"border-gray-200 text-gray-700 hover:border-orange-400"}`}>
+              <Phone className="w-4 h-4 text-orange-500" /> Ring kund
+            </a>
+            <button onClick={save} className="flex-2 flex-1 btn-cta text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+              <Check className="w-4 h-4" /> Spara ändringar
+            </button>
           </div>
         </div>
       </div>
@@ -442,389 +1002,401 @@ function SuccessModal({booking,onClose}) {
   );
 }
 
-/* ══════════════════════════════════════════
-   MAIN APP
-══════════════════════════════════════════ */
-export default function App() {
-  const [view,setView]   = useState("book");
-  const [step,setStep]   = useState(1);
-  const [dir,setDir]     = useState("up");
-  const [conf,setConf]   = useState(null);
-  const [errs,setErrs]   = useState({});
-  const [booked,setBook] = useState([]);
-  const [cnt,setCnt]     = useState(0);
-  const [imgPrev,setImg] = useState(null);
-  const [busy,setBusy]   = useState(false);
-  const [form,setForm]   = useState({name:"",phone:"",email:"",jobType:"",date:"",time:"",tags:[],desc:"",image:null});
+// ═══════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function AdminDashboard({ bookings, updateBooking, deleteBooking, onLogout, setPage, darkMode }) {
+  const [view, setView] = useState("overview");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [catFilter, setCatFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date");
+  const [selected, setSelected] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const dk = darkMode;
 
-  const refresh = useCallback(d=>{ if(!d||isWknd(d)||isPast(d)){setBook([]);setCnt(0);return;} setBook(slotsOn(d)); setCnt(storaOn(d)); },[]);
-  useEffect(()=>{ refresh(form.date); },[form.date,refresh]);
+  const today = new Date().toISOString().split("T")[0];
 
-  const set = (k,v) => { setForm(p=>({...p,[k]:v})); if(errs[k]) setErrs(e=>({...e,[k]:undefined})); };
-  const tag = t => setForm(p=>({...p,tags:p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags,t]}));
+  // Computed stats
+  const todayMajor = bookings.filter(b => b.date === today && b.category === "major").length;
+  const todaySmall = bookings.filter(b => b.date === today && b.category === "small").length;
+  const totalActive = bookings.filter(b => !["pickedup","finished"].includes(b.status)).length;
+  const inProgress = bookings.filter(b => b.status === "inprogress").length;
+  const waitingParts = bookings.filter(b => b.status === "waitingparts").length;
+  const done = bookings.filter(b => b.status === "finished").length;
 
-  function go(to) { setDir(to>step?"up":"down"); setTimeout(()=>{ setStep(to); setErrs({}); },10); }
+  // Filtered + sorted bookings
+  const filtered = bookings.filter(b => {
+    const s = search.toLowerCase();
+    if (s && !b.name.toLowerCase().includes(s) && !b.regNumber.toLowerCase().includes(s) && !b.phone.includes(s)) return false;
+    if (statusFilter !== "all" && b.status !== statusFilter) return false;
+    if (catFilter !== "all" && b.category !== catFilter) return false;
+    return true;
+  }).sort((a, b) => {
+    if (sortBy === "date") return a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
+    if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (sortBy === "status") return a.status.localeCompare(b.status);
+    return 0;
+  });
 
-  function validate() {
-    const e={};
-    if(step===1){ if(!form.name.trim())e.name="Namn krävs"; if(!form.phone.trim())e.phone="Telefon krävs"; if(!/^\S+@\S+\.\S+$/.test(form.email))e.email="Ogiltig e-postadress"; }
-    if(step===2){ if(!form.jobType)e.jobType="Välj en tjänst för att fortsätta"; if(form.jobType==="stora"){if(!form.date)e.date="Välj ett datum";else if(isWknd(form.date))e.date="Välj en vardag (mån–fre)";else if(cnt>=MAX)e.date="Fullbokat — välj ett annat datum"; if(!form.time)e.time="Välj en tillgänglig tid";} }
-    return e;
-  }
-  function next(){ const e=validate(); if(Object.keys(e).length){setErrs(e);return;} go(step+1); }
+  const BG = dk ? "bg-gray-950" : "bg-slate-100";
+  const SBG = dk ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200";
+  const CARD = dk ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100";
+  const HDR = dk ? "text-white" : "text-gray-900";
+  const LBL = dk ? "text-gray-400" : "text-gray-500";
+  const INP = `px-3 py-2.5 rounded-xl border text-sm ${dk?"bg-gray-800 border-gray-700 text-white placeholder-gray-500":"bg-white border-gray-200 text-gray-900"}`;
 
-  function handleImg(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>{setImg(ev.target.result);set("image",ev.target.result);}; r.readAsDataURL(f); }
+  const navItems = [
+    { id:"overview", icon:<BarChart2 className="w-5 h-5" />, label:"Översikt" },
+    { id:"bookings", icon:<FileText className="w-5 h-5" />, label:"Bokningar" },
+    { id:"calendar", icon:<Calendar className="w-5 h-5" />, label:"Kalender" },
+  ];
 
-  async function submit(){
-    setBusy(true); await new Promise(r=>setTimeout(r,700));
-    const desc=[form.tags.length?form.tags.join(", "):null,form.desc||null].filter(Boolean).join("\n\n");
-    const b={id:Date.now().toString(),...form,description:desc,date:form.jobType==="enkla"?todayStr():form.date,time:form.jobType==="enkla"?"Drop-in":form.time,status:"Ny",createdAt:new Date().toISOString()};
-    saveAll([...getAll(),b]); sendMail(b); setBusy(false); setConf(b);
-  }
-
-  function reset(){ setConf(null); setForm({name:"",phone:"",email:"",jobType:"",date:"",time:"",tags:[],desc:"",image:null}); setImg(null); go(1); }
-
-  if(view==="admin") return <Admin onBack={()=>setView("book")}/>;
-
-  const avail = SLOTS.filter(s=>!booked.includes(s));
-  const full  = form.jobType==="stora"&&form.date&&cnt>=MAX;
-  const pct   = ((step-1)/(STEPS.length-1))*100;
-
-  const summary=[
-    ["Kund",    form.name],
-    ["Telefon", form.phone],
-    ["E-post",  form.email],
-    ["Tjänst",  form.jobType==="enkla"?"Snabbservice":form.jobType==="stora"?"Större jobb":"–"],
-    ...(form.jobType==="stora"?[["Datum",fmtLong(form.date)],["Tid",form.time]]:[]),
-    ...(form.tags.length?[["Kategori",form.tags.join(", ")]]:[]),
-    ...(form.desc?[["Notering",form.desc]]:[]),
-  ].filter(([,v])=>v&&v!=="–");
+  // Calendar view helpers
+  const calDates = Array.from(new Set(bookings.map(b => b.date))).sort();
 
   return (
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:F.body,color:C.white,overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
-      <GS/>
-
-      {/* ────────── HEADER ────────── */}
-      <header style={{background:C.surface,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:40,width:"100%"}}>
-        {/* Red top line */}
-        <div style={{height:3,background:`linear-gradient(90deg,${C.redD},${C.red} 40%,transparent)`}}/>
-        <div className="header-inner" style={{maxWidth:780,margin:"0 auto",height:58,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",boxSizing:"border-box"}}>
-          {/* Logo */}
-          <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0,flex:1,overflow:"hidden"}}>
-            <KIBadge size={36}/>
-            <div style={{minWidth:0}}>
-              <p className="hdr-wordmark" style={{fontFamily:F.display,fontSize:"clamp(14px,3vw,18px)",fontWeight:900,color:C.white,letterSpacing:"1px",textTransform:"uppercase",lineHeight:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                {WS.name}
-              </p>
-              <Mono s="9" col={C.g2} style={{letterSpacing:"2px",whiteSpace:"nowrap"}}>{WS.tagline.toUpperCase()}</Mono>
+    <div className={`min-h-screen flex ${BG}`}>
+      {/* ── SIDEBAR ── */}
+      <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:relative z-40 flex flex-col w-64 border-r transition-transform duration-300 ${SBG} min-h-screen`}>
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-800/50">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+              <Wrench className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className={`syne font-bold text-sm ${HDR}`}>Kom In</div>
+              <div className="text-[10px] text-orange-500 font-bold tracking-widest uppercase">Admin</div>
             </div>
           </div>
-          {/* Right */}
-          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-            <a href={`tel:${WS.tel}`} className="nav-link"
-              style={{fontFamily:F.mono,fontSize:13,color:C.g1,textDecoration:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"7px 14px",display:"flex",alignItems:"center",gap:7,minHeight:40,transition:"color .18s",whiteSpace:"nowrap"}}>
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{flexShrink:0}}>
-                <path d="M2 2.5s1 3 3 5 4.5 4 4.5 4l2-2-2.5-2.5L7.5 8.5S6 7 5 6 2.5 3.5 2.5 3.5L4 2 1.5.5 2 2.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>{WS.phone}</span>
-            </a>
-            <button className="btn-ghost" onClick={()=>setView("admin")} style={{...ghostBase,fontSize:11,padding:"7px 12px",fontFamily:F.mono,letterSpacing:"1px",color:C.g2,minHeight:40}}>ADMIN</button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 p-4 space-y-1">
+          {navItems.map(item => (
+            <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }}
+              className={`admin-sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${view === item.id ? "active" : dk?"text-gray-400 hover:text-white":"text-gray-600 hover:text-gray-900"}`}>
+              {item.icon} {item.label}
+              {item.id === "bookings" && totalActive > 0 && (
+                <span className="ml-auto bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{totalActive}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className={`p-4 border-t ${dk?"border-gray-800":"border-gray-100"}`}>
+          <button onClick={() => setPage("home")} className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm ${LBL} hover:text-orange-500 transition-colors mb-1`}>
+            <ArrowRight className="w-4 h-4" /> Till webbplatsen
+          </button>
+          <button onClick={onLogout} className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm ${LBL} hover:text-red-400 transition-colors`}>
+            <LogOut className="w-4 h-4" /> Logga ut
+          </button>
+        </div>
+      </aside>
+
+      {/* ── MAIN ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <header className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b ${dk?"border-gray-800 bg-gray-900/80":"border-gray-200 bg-white/80"} backdrop-blur-sm sticky top-0 z-30`}>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden p-2 rounded-lg bg-gray-100 text-gray-700">
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className={`syne font-extrabold text-xl ${HDR}`}>
+                {view === "overview" ? "Översikt" : view === "bookings" ? "Bokningar" : "Kalender"}
+              </h1>
+              <p className={`text-xs ${LBL}`}>{new Date().toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</p>
+            </div>
           </div>
-        </div>
-        {/* Progress bar */}
-        <div style={{height:2,background:C.stripe}}>
-          <div style={{height:"100%",background:`linear-gradient(90deg,${C.redD},${C.red})`,width:`${pct}%`,transition:"width .5s cubic-bezier(.22,1,.36,1)"}}/>
-        </div>
-      </header>
-
-      <main className="main-wrap" style={{maxWidth:600,margin:"0 auto",padding:"44px 16px 90px",width:"100%",boxSizing:"border-box"}}>
-
-        {/* ────────── HERO ────────── */}
-        <div className="hero-section" style={{padding:"0 0",marginBottom:48,overflow:"hidden"}}>
-
-          {/* Live badge */}
-          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:4,padding:"5px 12px",marginBottom:18}}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:C.red,animation:"pulse 2s ease-in-out infinite",flexShrink:0}}/>
-            <Mono s="9" col={C.red}>BOKNING ÖPPEN</Mono>
+          <div className="flex items-center gap-2">
+            <span className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${dk?"bg-gray-800 text-orange-400":"bg-orange-50 text-orange-600"}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+              Hussein
+            </span>
           </div>
+        </header>
 
-          <h1 className="hero-title" style={{fontFamily:F.display,fontWeight:900,textTransform:"uppercase",letterSpacing:"-1.5px",lineHeight:.9,marginBottom:16,color:C.white,wordBreak:"break-word"}}>
-            Boka din<br/>
-            <span style={{color:C.red}}>Bilservice</span>
-          </h1>
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
 
-          <p style={{color:C.g1,fontSize:15,lineHeight:1.8,maxWidth:360}}>
-            Ring oss direkt på{" "}
-            <a href={`tel:${WS.tel}`} style={{color:C.red,textDecoration:"none",fontWeight:600,borderBottom:`1px solid ${C.red}44`}}>{WS.phone}</a>
-            {" "}eller fyll i formuläret nedan.
-          </p>
-
-          {/* Quick info bar */}
-          <div style={{display:"flex",gap:0,marginTop:24,border:`1px solid ${C.bd}`,borderRadius:8,overflow:"hidden",flexWrap:"wrap"}}>
-            {[["Öppettider",WS.hours],["Plats",WS.city],[WS.est,"Erfarenhet"]].map(([l,v],i)=>(
-              <div key={l} style={{flex:"1 1 140px",padding:"12px 16px",borderRight:i<2?`1px solid ${C.bd}`:"none"}}>
-                <Mono s="8" col={C.g3} style={{display:"block",marginBottom:4}}>{l.toUpperCase()}</Mono>
-                <p style={{color:C.g1,fontSize:13,fontWeight:500}}>{v}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ────────── STEP DOTS ────────── */}
-        <div style={{marginBottom:28,display:"flex",alignItems:"flex-start",width:"100%"}}>
-          {STEPS.map((s,i)=>{
-            const done=step>s.n, cur=step===s.n;
-            return (
-              <div key={s.n} style={{display:"flex",alignItems:"flex-start",flex:i<STEPS.length-1?1:"none"}}>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                  <div style={{width:32,height:32,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F.mono,fontSize:11,fontWeight:600,flexShrink:0,transition:"all .3s ease",background:done?C.red:cur?C.redDim:C.g3,color:done?"#fff":cur?C.red:C.g2,border:`1.5px solid ${done?C.red:cur?`${C.red}60`:C.g3}`,boxShadow:cur?`0 0 0 3px ${C.redDim},0 0 20px ${C.redGlow}`:"none"}}>
-                    {done?<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>:`0${s.n}`}
-                  </div>
-                  <span className="step-labels" style={{fontFamily:F.mono,fontSize:8,letterSpacing:"1px",textTransform:"uppercase",color:done||cur?C.red:C.g3,transition:"color .3s",whiteSpace:"nowrap"}}>{s.l}</span>
-                </div>
-                {i<STEPS.length-1&&<div style={{flex:1,height:1.5,marginTop:15,background:step>s.n?C.red:C.g3,transition:"background .4s"}}/>}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ────────── STEP CARDS ────────── */}
-        <div key={step} className={dir==="up"?"step-in":"step-out"}>
-
-          {/* ══ STEP 1: KONTAKT ══ */}
-          {step===1&&(
-            <Card>
-              <CardHead num="01" title="Dina uppgifter" sub="Vi kontaktar dig på dessa uppgifter."/>
-              <div style={{display:"flex",flexDirection:"column",gap:16}}>
-                <Field label="Fullständigt namn"  type="text"  value={form.name}  onChange={v=>set("name",v)}  placeholder="Förnamn Efternamn" error={errs.name}/>
-                <Field label="Telefonnummer"       type="tel"   value={form.phone} onChange={v=>set("phone",v)} placeholder="070 – XXX XX XX"   error={errs.phone}/>
-                <Field label="E-postadress"        type="email" value={form.email} onChange={v=>set("email",v)} placeholder="din@email.se"       error={errs.email}/>
-              </div>
-              <CardNav onNext={next}/>
-            </Card>
-          )}
-
-          {/* ══ STEP 2: TJÄNST ══ */}
-          {step===2&&(
-            <Card>
-              <CardHead num="02" title="Välj tjänst" sub="Välj det som passar ditt ärende bäst."/>
-              {errs.jobType&&<ErrTxt msg={errs.jobType}/>}
-
-              {/* Service cards */}
-              <div className="svc-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18,marginTop:8}}>
+          {/* ── OVERVIEW ── */}
+          {view === "overview" && (
+            <div className="space-y-6">
+              {/* Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  {v:"enkla",code:"S-01",title:"Snabbservice",sub:"Oljebyte, filter, däck – inget bokningskrav"},
-                  {v:"stora",code:"J-02",title:"Större jobb", sub:"Motor, diagnos, broms – tidsbokning krävs"},
-                ].map(svc=>{
-                  const active=form.jobType===svc.v;
-                  return (
-                    <button key={svc.v} className="svc-card" onClick={()=>set("jobType",svc.v)}
-                      style={{background:active?C.redDim:"transparent",border:`1.5px solid ${active?C.red:C.bd}`,borderRadius:8,padding:"20px 16px",textAlign:"left",transition:"all .2s ease",position:"relative",overflow:"hidden",borderLeft:active?`3px solid ${C.red}`:undefined,minHeight:120,display:"flex",flexDirection:"column",boxShadow:active?`0 0 0 1px ${C.red}20,0 8px 32px ${C.redGlow}`:"0 2px 8px rgba(0,0,0,.2)"}}>
-                      <Mono s="8" col={active?C.red:C.g3} style={{display:"block",marginBottom:12,transition:"color .2s"}}>{svc.code}</Mono>
-                      <p style={{fontFamily:F.display,fontSize:20,fontWeight:900,color:active?C.white:C.g1,textTransform:"uppercase",letterSpacing:".5px",marginBottom:5,transition:"color .2s",lineHeight:1}}>{svc.title}</p>
-                      <p style={{color:C.g2,fontSize:12,lineHeight:1.5,flex:1}}>{svc.sub}</p>
-                      {active&&<Mono s="8" col={C.red} style={{marginTop:10,display:"block"}}>Vald ✓</Mono>}
-                    </button>
-                  );
-                })}
+                  { label:"Idag – Större", value: todayMajor, max: MAX_MAJOR, color:"from-orange-500 to-red-600", icon:<Wrench className="w-5 h-5" /> },
+                  { label:"Idag – Service", value: todaySmall, max: MAX_SMALL, color:"from-emerald-500 to-teal-600", icon:<Settings className="w-5 h-5" /> },
+                  { label:"Pågående jobb", value: inProgress, color:"from-blue-600 to-blue-800", icon:<Activity className="w-5 h-5" /> },
+                  { label:"Väntar på delar", value: waitingParts, color:"from-purple-500 to-purple-700", icon:<Package className="w-5 h-5" /> },
+                ].map((s, i) => (
+                  <div key={i} className={`rounded-2xl border p-5 ${CARD}`}>
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white mb-4`}>{s.icon}</div>
+                    <div className={`syne text-3xl font-black ${HDR}`}>{s.value}{s.max ? <span className={`text-lg font-semibold ${LBL}`}>/{s.max}</span> : ""}</div>
+                    <div className={`text-xs font-semibold mt-1 ${LBL}`}>{s.label}</div>
+                    {s.max && <div className={`mt-3 h-1.5 rounded-full ${dk?"bg-gray-700":"bg-gray-100"}`}><div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all" style={{width:`${(s.value/s.max)*100}%`}} /></div>}
+                  </div>
+                ))}
               </div>
 
-              {/* Snabb info panel */}
-              {form.jobType==="enkla"&&(
-                <div style={{background:C.redDim,borderLeft:`3px solid ${C.red}`,borderRadius:"0 8px 8px 0",padding:"14px 16px",marginBottom:4}}>
-                  <Mono s="9" col={C.red} style={{display:"block",marginBottom:5}}>DROP-IN VÄLKOMMET</Mono>
-                  <p style={{color:C.g1,fontSize:13,lineHeight:1.7}}>Ingen tidsbokning krävs. Besök oss direkt — <strong style={{color:C.white}}>{WS.hours}</strong></p>
+              {/* Recent bookings */}
+              <div className={`rounded-2xl border ${CARD}`}>
+                <div className={`flex items-center justify-between p-5 border-b ${dk?"border-gray-800":"border-gray-100"}`}>
+                  <h2 className={`syne font-bold text-base ${HDR}`}>Senaste bokningar</h2>
+                  <button onClick={() => setView("bookings")} className="text-xs font-semibold text-orange-500 hover:text-orange-600">Visa alla →</button>
                 </div>
-              )}
-
-              {/* Stora: date + time */}
-              {form.jobType==="stora"&&(
-                <div style={{borderTop:`1px solid ${C.bd}`,paddingTop:20,marginTop:4}}>
-                  <Field label="Datum — måndag till fredag" type="date" min={todayStr()} value={form.date} error={errs.date}
-                    onChange={v=>{ set("date",v); set("time",""); if(isWknd(v))setErrs(r=>({...r,date:"Välj en vardag (mån–fre)"})); else setErrs(r=>({...r,date:undefined})); }}/>
-                  {form.date&&!isWknd(form.date)&&!errs.date&&(
-                    <p style={{fontFamily:F.mono,fontSize:9,color:C.red,marginTop:8,letterSpacing:"1px"}}>
-                      {avail.length>0?`${avail.length} / ${SLOTS.length} TIDER TILLGÄNGLIGA`:"INGA LEDIGA TIDER"}
-                    </p>
-                  )}
-
-                  {form.date&&!isWknd(form.date)&&!full&&(
-                    <div style={{marginTop:18}}>
-                      <Cap>Välj tid</Cap>
-                      {errs.time&&<ErrTxt msg={errs.time}/>}
-                      <div className="slot-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:8}}>
-                        {SLOTS.map(sl=>{
-                          const taken=booked.includes(sl), active=form.time===sl;
-                          return (
-                            <button key={sl} disabled={taken} className={!taken?"slot-btn":""}
-                              onClick={()=>!taken&&set("time",sl)}
-                              style={{padding:"15px 8px",borderRadius:6,fontFamily:F.mono,fontSize:16,fontWeight:600,letterSpacing:"1px",border:`1.5px solid ${active?C.red:taken?"rgba(255,255,255,.03)":C.bd}`,background:active?C.redDim:taken?"rgba(255,255,255,.01)":"transparent",color:taken?C.g3:active?C.red:C.g1,cursor:taken?"default":"pointer",opacity:taken?.3:1,transition:"all .18s",boxShadow:active?`0 0 24px ${C.redGlow}`:"none",minHeight:62}}>
-                              {sl}
-                              <span style={{display:"block",fontFamily:F.mono,fontSize:8,marginTop:5,letterSpacing:"1.5px",textTransform:"uppercase",color:taken?C.g3:active?C.red:C.g3}}>{taken?"Bokad":"Ledig"}</span>
-                            </button>
-                          );
-                        })}
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {bookings.slice(-5).reverse().map(b => (
+                    <button key={b.id} onClick={() => setSelected(b)}
+                      className={`w-full flex items-center gap-4 px-5 py-4 text-left transition-colors ${dk?"hover:bg-gray-800":"hover:bg-gray-50"}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${b.category==="major"?"bg-orange-100 text-orange-600":"bg-emerald-100 text-emerald-600"}`}>
+                        {b.category === "major" ? <Wrench className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
                       </div>
-                    </div>
-                  )}
-                  {full&&(
-                    <div style={{background:`${C.err}10`,borderLeft:`3px solid ${C.err}`,borderRadius:"0 6px 6px 0",padding:"12px 16px",marginTop:16}}>
-                      <p style={{color:C.err,fontSize:13,fontWeight:500}}>Fullbokat detta datum. Välj ett annat datum.</p>
-                    </div>
-                  )}
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-semibold text-sm ${HDR} truncate`}>{b.name}</div>
+                        <div className={`text-xs ${LBL} mt-0.5`}>{b.regNumber} · {b.serviceType} · {b.time}, {fmtDateShort(b.date)}</div>
+                      </div>
+                      <StatusBadge status={b.status} />
+                    </button>
+                  ))}
                 </div>
-              )}
-              <CardNav onNext={next} onBack={()=>go(1)}/>
-            </Card>
-          )}
+              </div>
 
-          {/* ══ STEP 3: ÄRENDE ══ */}
-          {step===3&&(
-            <Card>
-              <CardHead num="03" title="Beskriv ärendet" sub="Välj kategori och/eller beskriv felet med egna ord."/>
-              {/* Tags */}
-              <div style={{marginBottom:18}}>
-                <Cap>Kategori <span style={{fontFamily:F.body,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:11,color:C.g3}}>— valfritt, välj en eller flera</span></Cap>
-                <div style={{display:"flex",flexWrap:"wrap",gap:7,marginTop:8}}>
-                  {TAGS.map(t=>{
-                    const sel=form.tags.includes(t);
+              {/* Status breakdown */}
+              <div className={`rounded-2xl border p-5 ${CARD}`}>
+                <h2 className={`syne font-bold text-base mb-4 ${HDR}`}>Statusöversikt</h2>
+                <div className="space-y-3">
+                  {Object.entries(STATUS_CFG).map(([k, cfg]) => {
+                    const count = bookings.filter(b => b.status === k).length;
                     return (
-                      <button key={t} onClick={()=>tag(t)} className="tag-pill"
-                        style={{padding:"8px 14px",borderRadius:6,fontFamily:F.mono,fontSize:10,fontWeight:600,letterSpacing:".5px",textTransform:"uppercase",border:`1px solid ${sel?C.red:C.bd}`,background:sel?C.redDim:"transparent",color:sel?C.red:C.g1,transition:"all .15s",minHeight:38}}>
-                        {t}
-                      </button>
+                      <div key={k} className="flex items-center gap-3">
+                        <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot} flex-shrink-0`} />
+                        <span className={`text-sm flex-1 ${LBL}`}>{cfg.label}</span>
+                        <span className={`syne font-bold text-sm ${HDR}`}>{count}</span>
+                        <div className={`w-24 h-1.5 rounded-full ${dk?"bg-gray-700":"bg-gray-100"}`}>
+                          <div className={`h-full rounded-full ${cfg.dot}`} style={{width:`${bookings.length > 0 ? (count/bookings.length)*100 : 0}%`, transition:"width .5s"}} />
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
               </div>
-              {/* Textarea */}
-              <div style={{marginBottom:20}}>
-                <Cap>Beskrivning <span style={{fontFamily:F.body,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:11,color:C.g3}}>— valfritt</span></Cap>
-                <textarea value={form.desc} rows={4} onChange={e=>set("desc",e.target.value)} className="inp"
-                  placeholder="Beskriv felet, symptom och hur länge det har pågått…"
-                  style={{width:"100%",background:C.surface,border:`1.5px solid ${C.bd}`,borderRadius:8,padding:"13px 16px",color:C.white,fontFamily:F.body,resize:"vertical",lineHeight:1.75,minHeight:110,transition:"border-color .2s,box-shadow .2s",marginTop:8}}/>
-              </div>
-              {/* Image upload */}
-              <div>
-                <Cap>Bifoga bild <span style={{fontFamily:F.body,textTransform:"none",letterSpacing:0,fontWeight:400,fontSize:11,color:C.g3}}>— valfritt</span></Cap>
-                <label style={{cursor:"pointer",display:"block",marginTop:8}}>
-                  <input type="file" accept="image/*" style={{display:"none"}} onChange={handleImg}/>
-                  {imgPrev?(
-                    <div style={{borderRadius:8,overflow:"hidden",border:`1px solid ${C.bd}`,position:"relative"}}>
-                      <img src={imgPrev} alt="" style={{width:"100%",maxHeight:220,objectFit:"cover"}}/>
-                      <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 45%)",display:"flex",alignItems:"flex-end",padding:"12px 16px"}}>
-                        <Mono s="10" col={C.g1}>BYTA BILD →</Mono>
-                      </div>
-                    </div>
-                  ):(
-                    <div style={{border:`1.5px dashed ${C.bd}`,borderRadius:8,padding:"40px 20px",textAlign:"center",background:"rgba(255,255,255,.01)"}}>
-                      <div style={{width:46,height:46,border:`1px solid ${C.bd}`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",background:"rgba(255,255,255,.02)"}}>
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v14M2 9h14" stroke={C.g3} strokeWidth="1.5" strokeLinecap="round"/></svg>
-                      </div>
-                      <p style={{color:C.g1,fontSize:14,fontWeight:500,marginBottom:4}}>Klicka för att ladda upp</p>
-                      <Mono s="9" col={C.g3}>JPG / PNG — MAX 10 MB</Mono>
-                    </div>
-                  )}
-                </label>
-              </div>
-              <CardNav onNext={next} onBack={()=>go(2)} nextLabel="Granska bokning"/>
-            </Card>
+            </div>
           )}
 
-          {/* ══ STEP 4: BEKRÄFTA ══ */}
-          {step===4&&(
-            <Card>
-              <CardHead num="04" title="Bekräfta" sub="Kontrollera dina uppgifter och bekräfta bokningen."/>
-              {/* Order number badge */}
-              <div style={{background:C.cardAlt,border:`1px solid ${C.bd}`,borderRadius:6,padding:"12px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                <div>
-                  <Mono s="8" col={C.g3} style={{display:"block",marginBottom:3}}>ARBETSORDER</Mono>
-                  <Mono s="14" col={C.red} style={{fontWeight:700}}>{orderNo(Date.now().toString())}</Mono>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <Mono s="8" col={C.g3} style={{display:"block",marginBottom:3}}>DATUM</Mono>
-                  <Mono s="12" col={C.g1}>{new Date().toLocaleDateString("sv-SE")}</Mono>
-                </div>
-              </div>
-              {/* Summary table */}
-              <div style={{border:`1px solid ${C.bd}`,borderRadius:8,overflow:"hidden",marginBottom:18}}>
-                <div style={{background:C.cardAlt,padding:"7px 14px",borderBottom:`1px solid ${C.bd}`}}>
-                  <Mono s="8" col={C.g3}>BOKNINGSDETALJER</Mono>
-                </div>
-                {summary.map(([l,v],i,a)=>(
-                  <div key={l} style={{display:"flex",gap:12,padding:"11px 14px",borderBottom:i<a.length-1?`1px solid ${C.bdFaint}`:"none",background:i%2?"rgba(255,255,255,.012)":"transparent",flexWrap:"wrap"}}>
-                    <Mono s="8" col={C.g3} style={{minWidth:68,paddingTop:2,flexShrink:0,textTransform:"uppercase"}}>{l}</Mono>
-                    <span style={{color:C.g1,fontSize:13,fontWeight:500,flex:1,lineHeight:1.5,wordBreak:"break-word"}}>{cap(v)}</span>
+          {/* ── BOOKINGS LIST ── */}
+          {view === "bookings" && (
+            <div className="space-y-4">
+              {/* Filters */}
+              <div className={`rounded-2xl border p-4 ${CARD}`}>
+                <div className="flex flex-wrap gap-3">
+                  <div className="relative flex-1 min-w-[180px]">
+                    <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${LBL}`} />
+                    <input className={`${INP} pl-9 w-full`} placeholder="Sök namn, regnr, telefon..." value={search} onChange={e => setSearch(e.target.value)} />
                   </div>
-                ))}
+                  <select className={INP} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                    <option value="all">Alla statusar</option>
+                    {Object.entries(STATUS_CFG).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                  </select>
+                  <select className={INP} value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+                    <option value="all">Alla typer</option>
+                    <option value="major">Större reparation</option>
+                    <option value="small">Enklare service</option>
+                  </select>
+                  <select className={INP} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                    <option value="date">Sortera: Datum</option>
+                    <option value="name">Sortera: Namn</option>
+                    <option value="status">Sortera: Status</option>
+                  </select>
+                </div>
+                <div className={`text-xs ${LBL} mt-3`}>{filtered.length} bokningar visas</div>
               </div>
-              <p style={{fontFamily:F.mono,color:C.g3,fontSize:10,lineHeight:1.8,marginBottom:20,letterSpacing:".3px"}}>
-                VI RINGER DIG PÅ <span style={{color:C.g2}}>{form.phone}</span> FÖR ATT BEKRÄFTA BOKNINGEN.
-              </p>
-              <RedBtn full large onClick={submit} disabled={busy}>{busy?<Spin/>:"Bekräfta bokning"}</RedBtn>
-              <GhostBtn full onClick={()=>go(3)} style={{marginTop:8}}>Gå tillbaka</GhostBtn>
-            </Card>
+
+              {/* List */}
+              <div className={`rounded-2xl border overflow-hidden ${CARD}`}>
+                {filtered.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Search className={`w-10 h-10 mx-auto mb-3 ${LBL}`} />
+                    <p className={`font-semibold ${HDR}`}>Inga bokningar hittades</p>
+                    <p className={`text-sm ${LBL} mt-1`}>Prova att ändra dina filter</p>
+                  </div>
+                ) : (
+                  <div className="divide-y" style={{borderColor: dk?"#1f2937":"#f3f4f6"}}>
+                    {/* Header */}
+                    <div className={`hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] gap-4 px-5 py-3 text-xs font-bold uppercase tracking-wider ${LBL} ${dk?"bg-gray-800/50":"bg-gray-50"}`}>
+                      <span>Kund / Fordon</span><span>Datum & tid</span><span>Tjänst</span><span>Typ</span><span>Status</span><span></span>
+                    </div>
+                    {filtered.map(b => (
+                      <div key={b.id} className={`grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] gap-4 px-5 py-4 items-center hover:${dk?"bg-gray-800":"bg-gray-50"} transition-colors`}
+                        style={{cursor:"pointer"}} onClick={() => setSelected(b)}>
+                        <div>
+                          <div className={`font-semibold text-sm ${HDR}`}>{b.name}</div>
+                          <div className={`text-xs ${LBL} mt-0.5`}>{b.regNumber} · {b.carModel}</div>
+                          <div className={`text-xs font-mono ${LBL}`}>{b.id}</div>
+                        </div>
+                        <div>
+                          <div className={`text-sm font-semibold ${HDR}`}>{b.time}</div>
+                          <div className={`text-xs ${LBL}`}>{fmtDateShort(b.date)}</div>
+                        </div>
+                        <div className={`text-sm ${LBL} hidden md:block truncate`}>{b.serviceType}</div>
+                        <div className="hidden md:block">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.category==="major"?"bg-orange-100 text-orange-600":"bg-emerald-100 text-emerald-700"}`}>
+                            {b.category==="major"?"Större":"Service"}
+                          </span>
+                        </div>
+                        <div><StatusBadge status={b.status} /></div>
+                        <div className="flex items-center gap-1 justify-end">
+                          <button onClick={e => {e.stopPropagation();setSelected(b);}} className={`p-2 rounded-lg ${dk?"hover:bg-gray-700 text-gray-400":"hover:bg-gray-100 text-gray-500"} transition-colors`}>
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button onClick={e => {e.stopPropagation(); if(window.confirm("Ta bort bokning?")) deleteBooking(b.id);}}
+                            className={`p-2 rounded-lg ${dk?"hover:bg-red-900/40 text-gray-400 hover:text-red-400":"hover:bg-red-50 text-gray-400 hover:text-red-500"} transition-colors`}>
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
-        </div>
 
-        {/* ────────── FOOTER ────────── */}
-        <div className="footer-inner" style={{marginTop:40,paddingTop:20,borderTop:`1px solid ${C.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px 20px"}}>
-          <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
-            <a href={`tel:${WS.tel}`} className="nav-link" style={{fontFamily:F.mono,fontSize:11,color:C.g2,textDecoration:"none",transition:"color .18s"}}>{WS.phone}</a>
-            <a href={`mailto:${WS.email}`} className="nav-link" style={{fontFamily:F.mono,fontSize:11,color:C.g3,textDecoration:"none",transition:"color .18s"}}>{WS.email}</a>
-          </div>
-          <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-            <Mono s="11" col={C.g3}>{WS.hours}</Mono>
-            <Mono s="11" col={C.g3} style={{opacity:.5}}>{WS.est}</Mono>
-          </div>
-        </div>
-      </main>
-
-      {conf&&<SuccessModal booking={conf} onClose={reset}/>}
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════
-   LAYOUT COMPONENTS
-══════════════════════════════════════════ */
-function Card({children}) {
-  return (
-    <div style={{background:C.card,border:`1px solid ${C.bd}`,borderRadius:12,overflow:"hidden",boxShadow:"0 20px 70px rgba(0,0,0,.55)",position:"relative",width:"100%",boxSizing:"border-box"}}>
-      {/* Red left accent */}
-      <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:`linear-gradient(180deg,${C.red},${C.redD} 55%,transparent)`,zIndex:1}}/>
-      <div className="card-inner" style={{padding:"28px 28px 28px 32px"}}>{children}</div>
-    </div>
-  );
-}
-
-function CardHead({num,title,sub}) {
-  return (
-    <div style={{marginBottom:22}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-        <Mono s="9" col={C.red}>{num}</Mono>
-        <div style={{flex:1,height:1,background:C.bd}}/>
+          {/* ── CALENDAR ── */}
+          {view === "calendar" && (
+            <div className="space-y-4">
+              <div className={`rounded-2xl border p-5 ${CARD}`}>
+                <h2 className={`syne font-bold text-lg ${HDR} mb-5`}>Kalenderöversikt</h2>
+                {calDates.length === 0 ? (
+                  <p className={`text-sm ${LBL}`}>Inga bokningar.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {calDates.map(date => {
+                      const dayBks = bookings.filter(b => b.date === date).sort((a,b) => a.time.localeCompare(b.time));
+                      const isToday = date === today;
+                      return (
+                        <div key={date} className={`rounded-2xl border overflow-hidden ${isToday ? "border-orange-400" : dk?"border-gray-700":"border-gray-100"}`}>
+                          <div className={`px-5 py-3 flex items-center gap-3 ${isToday ? "bg-gradient-to-r from-orange-500 to-red-600" : dk?"bg-gray-800":"bg-gray-50"}`}>
+                            <div>
+                              <div className={`syne font-bold text-sm ${isToday?"text-white":HDR}`}>{fmtDate(date)}</div>
+                              {isToday && <span className="text-xs text-orange-100 font-semibold">IDAG</span>}
+                            </div>
+                            <div className="ml-auto flex items-center gap-2">
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isToday?"bg-white/20 text-white":"bg-orange-100 text-orange-700"}`}>
+                                {dayBks.filter(b=>b.category==="major").length}/{MAX_MAJOR} stora
+                              </span>
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isToday?"bg-white/20 text-white":"bg-emerald-100 text-emerald-700"}`}>
+                                {dayBks.filter(b=>b.category==="small").length}/{MAX_SMALL} service
+                              </span>
+                            </div>
+                          </div>
+                          <div className="divide-y" style={{borderColor:dk?"#1f2937":"#f3f4f6"}}>
+                            {dayBks.map(b => (
+                              <button key={b.id} onClick={() => setSelected(b)}
+                                className={`w-full flex items-center gap-4 px-5 py-3.5 text-left transition-colors ${dk?"hover:bg-gray-800":"hover:bg-gray-50"}`}>
+                                <div className={`syne font-black text-sm w-12 flex-shrink-0 ${dk?"text-gray-400":"text-gray-500"}`}>{b.time}</div>
+                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${b.category==="major"?"bg-orange-500":"bg-emerald-500"}`}></div>
+                                <div className="flex-1 min-w-0">
+                                  <div className={`font-semibold text-sm ${HDR} truncate`}>{b.name}</div>
+                                  <div className={`text-xs ${LBL} truncate`}>{b.serviceType} · {b.regNumber}</div>
+                                </div>
+                                <StatusBadge status={b.status} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </main>
       </div>
-      <h2 style={{fontFamily:F.display,fontWeight:900,fontSize:"clamp(22px,5vw,30px)",color:C.white,textTransform:"uppercase",letterSpacing:"1px",lineHeight:1,marginBottom:6}}>{title}</h2>
-      <p style={{color:C.g2,fontSize:13,lineHeight:1.55}}>{sub}</p>
+
+      {/* Sidebar backdrop on mobile */}
+      {sidebarOpen && <div className="md:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Booking modal */}
+      {selected && (
+        <BookingModal
+          booking={selected}
+          onClose={() => setSelected(null)}
+          onUpdate={(updated) => { updateBooking(updated); setSelected(null); }}
+          darkMode={dk}
+        />
+      )}
     </div>
   );
 }
 
-function CardNav({onNext,onBack,nextLabel="Nästa steg"}) {
+// ═══════════════════════════════════════════════════════════════
+// APP
+// ═══════════════════════════════════════════════════════════════
+export default function App() {
+  const [page, setPage] = useState("home");
+  const [darkMode, setDarkMode] = useState(false);
+  const [bookings, setBookings] = useState(() => loadBookings());
+  const [adminAuth, setAdminAuth] = useState(false);
+
+  useEffect(() => { saveBookings(bookings); }, [bookings]);
+
+  const addBooking = (b) => setBookings(prev => [...prev, b]);
+  const updateBooking = (updated) => setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
+  const deleteBooking = (id) => setBookings(prev => prev.filter(b => b.id !== id));
+  const toggleDark = () => setDarkMode(d => !d);
+
+  const handleLogout = () => { setAdminAuth(false); setPage("home"); };
+
   return (
-    <div style={{display:"flex",gap:8,marginTop:24,paddingTop:18,borderTop:`1px solid ${C.bd}`}}>
-      {onBack&&<GhostBtn onClick={onBack} style={{minWidth:100}}>Tillbaka</GhostBtn>}
-      <RedBtn full onClick={onNext} style={{flex:1}}>{nextLabel}</RedBtn>
-    </div>
+    <>
+      <GlobalStyles />
+      <div style={{fontFamily:"'DM Sans', sans-serif"}} className={darkMode ? "dark" : ""}>
+        {page !== "admin" && (
+          <Navbar page={page} setPage={setPage} darkMode={darkMode} toggleDark={toggleDark} />
+        )}
+
+        {page === "home" && <HomePage setPage={setPage} darkMode={darkMode} />}
+
+        {page === "booking" && (
+          <BookingPage
+            bookings={bookings}
+            addBooking={addBooking}
+            setPage={setPage}
+            darkMode={darkMode}
+          />
+        )}
+
+        {page === "admin-login" && (
+          <AdminLoginPage
+            onLogin={() => { setAdminAuth(true); setPage("admin"); }}
+            setPage={setPage}
+            darkMode={darkMode}
+          />
+        )}
+
+        {page === "admin" && adminAuth && (
+          <AdminDashboard
+            bookings={bookings}
+            updateBooking={updateBooking}
+            deleteBooking={deleteBooking}
+            onLogout={handleLogout}
+            setPage={setPage}
+            darkMode={darkMode}
+          />
+        )}
+
+        {page === "admin" && !adminAuth && (
+          <AdminLoginPage
+            onLogin={() => { setAdminAuth(true); setPage("admin"); }}
+            setPage={setPage}
+            darkMode={darkMode}
+          />
+        )}
+      </div>
+    </>
   );
 }
-
-/* ══════════════════════════════════════════
-   STYLE BASES
-══════════════════════════════════════════ */
-const ghostBase = {
-  background:"transparent",border:`1px solid ${C.bd}`,borderRadius:6,
-  padding:"9px 14px",color:C.g1,fontSize:13,fontWeight:500,
-  cursor:"pointer",fontFamily:F.body,transition:"all .18s",display:"inline-block",textAlign:"center",
-};
