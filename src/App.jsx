@@ -10,11 +10,11 @@ MapPin, Clock, User, Camera, Bell, ChevronRight, ChevronLeft, Plus, Wrench
 // ═══════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════
-const PHONE_RAW  = “0790574975”;
-const PHONE_DISP = “079-057 49 75”;
+const PHONE_RAW  = “0704002413”;
+const PHONE_DISP = “070-400 24 13”;
 const MAX_MAJOR  = 5;
 const MAX_SMALL  = 10;
-const ADMIN_PASS = “Hussein2024”;
+const ADMIN_PASS = “Mohammad1962”;
 const TIME_SLOTS = [“08:00”,“09:00”,“10:00”,“11:00”,“13:00”,“14:00”,“15:00”,“16:00”];
 const WDAYS      = [“Sön”,“Mån”,“Tis”,“Ons”,“Tor”,“Fre”,“Lör”];
 
@@ -668,7 +668,7 @@ return (
       transition:"all .8s cubic-bezier(.23,1,.32,1)",
     }}>
       <div style={{width:40,height:1,background:"linear-gradient(90deg,transparent,#e85d20)"}}/>
-      <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:700,letterSpacing:5,color:"#e85d20",textTransform:"uppercase"}}>Stockholm · Auktoriserad Verkstad</span>
+      <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:700,letterSpacing:5,color:"#e85d20",textTransform:"uppercase"}}>Kungsbacka · Auktoriserad Verkstad</span>
       <div style={{width:40,height:1,background:"linear-gradient(90deg,#e85d20,transparent)"}}/>
     </div>
 
@@ -869,7 +869,7 @@ const trust = [
 { icon:<Shield style={{width:20,height:20}}/>, title:“Garanterat arbete”, desc:“Skriftlig garanti på allt vi utför. Vi rätar upp eventuella fel utan extra kostnad.” },
 { icon:<Star style={{width:20,height:20}}/>, title:“Transparenta priser”, desc:“Ingen faktura utan din godkännande. Du vet alltid vad det kostar i förväg.” },
 { icon:<Clock style={{width:20,height:20}}/>, title:“Håller tider”, desc:“Vi respekterar din tid och informerar aktivt om ändringar i tidsplan.” },
-{ icon:<Phone style={{width:20,height:20}}/>, title:“Direkt kontakt”, desc:“Ring Hussein direkt. Ingen call-center. Verkstadsmästaren svarar personligen.” },
+{ icon:<Phone style={{width:20,height:20}}/>, title:“Direkt kontakt”, desc:“Ring Mohammad direkt. Ingen call-center. Verkstadsmästaren svarar personligen.” },
 ];
 
 return (
@@ -1010,7 +1010,7 @@ padding:“80px 24px”,textAlign:“center”,position:“relative”,
         AKUT ÄRENDE?
       </h2>
       <p style={{fontSize:18,color:"rgba(221,224,232,.6)",marginBottom:36,lineHeight:1.7}}>
-        Ring Hussein direkt — vi hjälper dig omedelbart. Ingen telefonkö. Direkt kontakt med verkstadsmästaren.
+        Ring Mohammad direkt — vi hjälper dig omedelbart. Ingen telefonkö. Direkt kontakt med verkstadsmästaren.
       </p>
       <a href={`tel:${PHONE_RAW}`} data-hover style={{
         display:"inline-flex",alignItems:"center",gap:16,
@@ -1061,7 +1061,7 @@ return (
           </div>
         </div>
         <p style={{fontSize:13,color:"rgba(221,224,232,.35)",lineHeight:1.8,maxWidth:280}}>
-          Professionell bilservice i Stockholm. Vi tar hand om din bil med omsorg, kompetens och total ärlighet.
+          Professionell bilservice i Kungsbacka. Vi tar hand om din bil med omsorg, kompetens och total ärlighet.
         </p>
         <a href={`tel:${PHONE_RAW}`} style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:20,color:"#e85d20",fontSize:13,fontWeight:600,textDecoration:"none"}}>
           <Phone style={{width:14,height:14}}/> {PHONE_DISP}
@@ -1087,7 +1087,7 @@ return (
     <div className="divider-line" style={{marginBottom:24}}/>
 
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
-      <span style={{fontSize:11,color:"rgba(221,224,232,.2)"}}>© 2026 Kom In Bilservice. Verkstadsgatan 12, Stockholm.</span>
+      <span style={{fontSize:11,color:"rgba(221,224,232,.2)"}}>© 2026 Kom In Bilservice. Energigatan 2 , Kungsbacka.</span>
       <button onClick={()=>setPage("admin-login")} style={{fontSize:11,color:"rgba(221,224,232,.15)",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}} data-hover>
         Admin
       </button>
@@ -1246,7 +1246,7 @@ return (
           <AlertTriangle style={{width:18,height:18,color:"#e85d20",flexShrink:0,marginTop:2}}/>
           <div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,color:"#e85d20",letterSpacing:1,marginBottom:4}}>AKUT ÄRENDE?</div>
-            <p style={{fontSize:13,color:"rgba(221,224,232,.5)"}}>Ring Hussein direkt på <a href={`tel:${PHONE_RAW}`} style={{color:"#e85d20",fontWeight:700,textDecoration:"none"}}>{PHONE_DISP}</a> för omedelbar hjälp.</p>
+            <p style={{fontSize:13,color:"rgba(221,224,232,.5)"}}>Ring Mohammad direkt på <a href={`tel:${PHONE_RAW}`} style={{color:"#e85d20",fontWeight:700,textDecoration:"none"}}>{PHONE_DISP}</a> för omedelbar hjälp.</p>
           </div>
         </div>
       </div>
@@ -1317,7 +1317,7 @@ return (
             </div>
             <div>
               <label style={S.label}>Telefonnummer *</label>
-              <input className="field" placeholder="070-123 45 67" type="tel" value={form.phone}
+              <input className="field" placeholder="0704002413" type="tel" value={form.phone}
                 onChange={e=>{setForm(f=>({...f,phone:e.target.value}));clearErr("phone");}}/>
               {errors.phone && <div style={{fontSize:11,color:"#f87171",marginTop:4}}>{errors.phone}</div>}
             </div>
@@ -1485,7 +1485,7 @@ return (
 <button onClick={()=>setPage(“home”)} style={{background:“none”,border:“none”,color:“rgba(221,224,232,.25)”,fontSize:12,cursor:“pointer”,fontFamily:”‘DM Sans’,sans-serif”}} data-hover>
 ← Tillbaka till webbplatsen
 </button>
-<div style={{fontSize:11,color:“rgba(221,224,232,.15)”,textAlign:“center”}}>Demo: admin / Hussein2024</div>
+<div style={{fontSize:11,color:“rgba(221,224,232,.15)”,textAlign:“center”}}>Demo: admin / Mohammad1962</div>
 </div>
 </div>
 </div>
@@ -1696,7 +1696,7 @@ return (
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <div style={{background:"rgba(232,93,32,.12)",border:"1px solid rgba(232,93,32,.2)",padding:"6px 14px",borderRadius:2,fontSize:12,fontWeight:600,color:"#fb923c",display:"flex",alignItems:"center",gap:6}}>
           <span style={{width:6,height:6,borderRadius:"50%",background:"#e85d20",animation:"grain .8s steps(2) infinite"}}/>
-          Hussein
+          MOHAMMAD
         </div>
       </div>
     </header>
