@@ -5,7 +5,7 @@ Phone, Calendar, ChevronDown, X, Menu, Check, ArrowRight, Shield,
 Star, Zap, Package, Settings, Activity, RefreshCw, CheckCircle,
 AlertTriangle, LogOut, FileText, Trash2, Search, Edit, BarChart2,
 MapPin, Clock, User, Camera, Bell, ChevronRight, ChevronLeft, Plus, Wrench
-} from “lucide-react”;
+} from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════
 // CONSTANTS
